@@ -1,0 +1,32 @@
+# monkey.jungle — Garmin Connect IQ build configuration
+project.manifest = manifest.xml
+
+# Source files
+monkey.sourcePath = source
+
+# Resources
+monkey.resourcePath = resources
+
+# Output
+monkey.outputPath = bin
+monkey.outputName = regatta
+
+# Target devices
+monkey.targetDevices = [
+    fenix6, fenix6pro, fenix6s, fenix6spro,
+    fenix7, fenix7pro, fenix7s, fenix7spro, fenix7x, fenix7xpro,
+    fenix8, fenix8solar, fenixE,
+    quatix6, quatix7, quatix7pro,
+    forerunner255, forerunner265, forerunner955, forerunner965,
+    epix2, epix2pro, epixpro51mm,
+    enduro2, enduro3,
+    marq2,
+    tactix7, tactix7pro
+]
+
+# Minimum API level
+monkey.minApiLevel = 3.1.0
+
+# Optimisation
+monkey.optimization = true
+monkey.typeCheck = 2  # Strict type checking

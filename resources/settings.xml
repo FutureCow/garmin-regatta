@@ -1,0 +1,23 @@
+<settings>
+    <setting propertyKey="ServerUrl" title="@Strings.ServerUrl">
+        <settingConfig type="url">
+            <urlConfig hint="@Strings.ServerUrlHint"
+                       default="https://regatta.fhettinga.nl"/>
+        </settingConfig>
+    </setting>
+    <setting propertyKey="AuthToken" title="@Strings.AuthToken">
+        <settingConfig type="alphaNumeric">
+            <alphaNumericConfig hint="@Strings.AuthTokenHint"/>
+        </settingConfig>
+    </setting>
+    <setting propertyKey="RaceCode" title="@Strings.RaceCode">
+        <settingConfig type="alphaNumeric">
+            <alphaNumericConfig hint="@Strings.RaceCodeHint"/>
+        </settingConfig>
+    </setting>
+    <setting propertyKey="AutoSync" title="Auto-sync na opname">
+        <settingConfig type="boolean">
+            <booleanConfig default="true"/>
+        </settingConfig>
+    </setting>
+</settings>
