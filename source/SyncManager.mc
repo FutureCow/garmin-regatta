@@ -1,12 +1,12 @@
-// SyncManager.mc — Phone-relayed sync to regatta server
+// SyncManager.mc — Phone-relayed HTTP sync to regatta server
 //
-// Uploads GPX track data to the regatta-server API via the Garmin
-// Connect IQ phone app. The watch communicates over BLE to the phone,
-// and the phone makes the actual HTTP request.
+// Uploads GPX track data to the regatta-server API via the phone.
+// Uses Communications.makeWebRequest() with CONNECTION_TYPE_BLE,
+// which routes HTTP through the Garmin Connect IQ app on the phone.
 //
 // Flow:
 //   1. Build GPX XML from recorded trackpoints
-//   2. Communications.transmit() over BLE → phone → server
+//   2. makeWebRequest() over BLE → phone → server
 //   3. Optionally join race via deelnamecode
 //   4. Clear local track data on success
 
@@ -25,7 +25,6 @@ class SyncManager {
 
     // ─── Public API ────────────────────────────────────────────────────
 
-    // Sync the most recent track (after recording stops)
     function syncLatest(callback) {
         _callback = callback;
         var app = Application.getApp();
@@ -40,7 +39,6 @@ class SyncManager {
         _uploadGpx(gpx);
     }
 
-    // Sync all locally stored pending tracks
     function syncAllPending(callback) {
         _callback = callback;
 
@@ -82,30 +80,26 @@ class SyncManager {
             "Authorization" => "Bearer " + (authToken != null ? authToken : "")
         };
 
-        // Options voor transmit: URL, headers, method, response type
+        // Parameters for makeWebRequest: URL params (empty dict) + options
         var options = {
-            :url => url,
-            :headers => headers,
             :method => Communications.HTTP_REQUEST_METHOD_POST,
-            :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON
+            :headers => headers,
+            :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON,
+            :connectionType => Communications.CONNECTION_TYPE_BLE
         };
 
-        // Data als Dictionary — transmit() verpakt dit via BLE naar de telefoon
-        var content = {
-            :data => body
-        };
+        System.println("Uploading GPX to: " + url + " (" + gpxData.length() + " bytes)");
 
-        System.println("Transmit GPX to: " + url + " (" + gpxData.length() + " bytes)");
-
-        Communications.transmit(
-            content,
+        Communications.makeWebRequest(
+            url,
+            { "body" => body },
             options,
-            new TransmitDelegate(method(:onUploadResponse))
+            method(:onUploadResponse)
         );
     }
 
     function onUploadResponse(responseCode, data) {
-        System.println("Transmit response: " + responseCode);
+        System.println("Upload response: " + responseCode);
 
         if (responseCode == 200 || responseCode == 201) {
             var trackId = null;
@@ -117,34 +111,23 @@ class SyncManager {
                 System.println("Parse error: " + e.getErrorMessage());
             }
 
-            // If we have a race code, try to join
             var raceCode = RegattaApp.getRaceCode();
             if (raceCode != null && trackId != null) {
                 _joinRace(raceCode, trackId);
                 return;
             }
 
-            // Success — clear stored track data
             var app = Application.getApp();
             app.getGpsRecorder().clearTrackPoints();
             Application.Storage.deleteValue("gps_track");
 
-            _notify(true, "Geupload ✓");
+            _notify(true, "Geupload");
         } else if (responseCode == 401) {
-            _notify(false, "Auth fout — check token");
+            _notify(false, "Auth fout");
         } else if (responseCode == Communications.BLE_CONNECTION_UNAVAILABLE) {
-            _notify(false, "Geen verbinding met telefoon");
-        } else if (responseCode == Communications.BLE_QUEUE_FULL) {
-            _notify(false, "Wachtrij vol — probeer later");
-        } else if (responseCode == Communications.BLE_REQUEST_TOO_LARGE) {
-            _notify(false, "Track te groot voor BLE");
-            _saveForRetry();
+            _notify(false, "Geen telefoon");
         } else {
-            var msg = "Fout " + responseCode;
-            if (data != null && data.hasKey(:error)) {
-                msg = data[:error];
-            }
-            _notify(false, msg);
+            _notify(false, "Fout " + responseCode);
             _saveForRetry();
         }
     }
@@ -164,20 +147,17 @@ class SyncManager {
         };
 
         var options = {
-            :url => url,
-            :headers => headers,
             :method => Communications.HTTP_REQUEST_METHOD_POST,
-            :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON
+            :headers => headers,
+            :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON,
+            :connectionType => Communications.CONNECTION_TYPE_BLE
         };
 
-        var content = {
-            :data => body
-        };
-
-        Communications.transmit(
-            content,
+        Communications.makeWebRequest(
+            url,
+            { "body" => body },
             options,
-            new TransmitDelegate(method(:onJoinResponse))
+            method(:onJoinResponse)
         );
     }
 
@@ -194,7 +174,6 @@ class SyncManager {
             _notify(true, "Geupload (niet gekoppeld)");
         }
 
-        // Clean up
         var app = Application.getApp();
         app.getGpsRecorder().clearTrackPoints();
         Application.Storage.deleteValue("gps_track");
@@ -214,34 +193,5 @@ class SyncManager {
             _callback.invoke(success, message);
         }
         _callback = null;
-    }
-}
-
-// ─── Transmit Delegate (Phone BLE → HTTP relay) ─────────────────────
-
-// Communications.transmit() requires a Communications.TransmitListener
-// delegate. This wraps the callback for async phone-relayed HTTP requests.
-class TransmitDelegate extends Communications.TransmitListener {
-
-    hidden var _callback;
-
-    function initialize(callback) {
-        TransmitListener.initialize();
-        _callback = callback;
-    }
-
-    // Called when the phone completes the HTTP request
-    function onTransmitComplete(responseCode, data) {
-        if (_callback != null) {
-            _callback.invoke(responseCode, data);
-        }
-    }
-
-    // Called when the transmission fails (no phone, timeout, etc.)
-    function onError(code) {
-        System.println("Transmit error: " + code);
-        if (_callback != null) {
-            _callback.invoke(code, null);
-        }
     }
 }
