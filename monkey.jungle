@@ -1,19 +1,6 @@
 # monkey.jungle — Garmin Connect IQ build configuration
 project.manifest = manifest.xml
-
-# Source files
 base.sourcePath = source
-
-# Resources
 base.resourcePath = resources
-
-# Output
 base.outputPath = bin
 base.outputName = regatta
-
-# Minimum API level (3.2.0 for Communications.transmit())
-base.minApiLevel = 3.2.0
-
-# Optimisation
-base.optimization = true
-base.typeCheck = 2  # Strict type checking
