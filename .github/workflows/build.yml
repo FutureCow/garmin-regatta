@@ -52,10 +52,9 @@ jobs:
         env:
           KEY_B64: ${{ secrets.GARMIN_DEVELOPER_KEY_B64 }}
 
-      - name: Create device definitions
+      - name: Create device definition
         run: |
-          mkdir -p ~/.Garmin/ConnectIQ/Devices/{fr965,fr955,fenix8}
-          # fr965
+          mkdir -p ~/.Garmin/ConnectIQ/Devices/fr965
           cat > ~/.Garmin/ConnectIQ/Devices/fr965/compiler.json << 'JSON'
           {
             "deviceId": "fr965",
@@ -64,62 +63,6 @@ jobs:
             "worldWidePartNumber": "006-B4315-00",
             "partNumbers": [
               { "number": "006-B4315-00", "firmwareVersion": "2502", "connectIQVersion": "5.2.0" }
-            ],
-            "resolution": { "width": 454, "height": 454 },
-            "launcherIcon": { "width": 65, "height": 65 },
-            "bitsPerPixel": 16,
-            "orientation": "GFX_ORNTN_0",
-            "gpuSupport": true,
-            "alphaBlendingSupport": true,
-            "screenRotationSupport": false,
-            "exportSupport": true,
-            "codePageSize": 4096,
-            "appTypes": [
-              { "type": "watchApp",   "memoryLimit": 786432 },
-              { "type": "watchFace",  "memoryLimit": 131072 },
-              { "type": "datafield",  "memoryLimit": 262144 },
-              { "type": "background", "memoryLimit": 65536 },
-              { "type": "glance",     "memoryLimit": 65536 }
-            ]
-          }
-          JSON
-          # fr955 (zelfde specs, ander part number)
-          cat > ~/.Garmin/ConnectIQ/Devices/fr955/compiler.json << 'JSON'
-          {
-            "deviceId": "fr955",
-            "displayName": "Forerunner 955",
-            "deviceFamily": "round-260x260",
-            "worldWidePartNumber": "006-B3646-00",
-            "partNumbers": [
-              { "number": "006-B3646-00", "firmwareVersion": "2502", "connectIQVersion": "5.2.0" }
-            ],
-            "resolution": { "width": 260, "height": 260 },
-            "launcherIcon": { "width": 40, "height": 40 },
-            "bitsPerPixel": 16,
-            "orientation": "GFX_ORNTN_0",
-            "gpuSupport": true,
-            "alphaBlendingSupport": true,
-            "screenRotationSupport": false,
-            "exportSupport": true,
-            "codePageSize": 4096,
-            "appTypes": [
-              { "type": "watchApp",   "memoryLimit": 786432 },
-              { "type": "watchFace",  "memoryLimit": 131072 },
-              { "type": "datafield",  "memoryLimit": 262144 },
-              { "type": "background", "memoryLimit": 65536 },
-              { "type": "glance",     "memoryLimit": 65536 }
-            ]
-          }
-          JSON
-          # fenix 8
-          cat > ~/.Garmin/ConnectIQ/Devices/fenix8/compiler.json << 'JSON'
-          {
-            "deviceId": "fenix8",
-            "displayName": "Fenix 8",
-            "deviceFamily": "round-454x454",
-            "worldWidePartNumber": "006-B4437-00",
-            "partNumbers": [
-              { "number": "006-B4437-00", "firmwareVersion": "2502", "connectIQVersion": "5.2.0" }
             ],
             "resolution": { "width": 454, "height": 454 },
             "launcherIcon": { "width": 65, "height": 65 },
@@ -151,18 +94,15 @@ jobs:
             -y developer_key.der
           ls -lh bin/regatta.iq
 
-      - name: Build per-device .prg
+      - name: Build .prg
         run: |
-          for device in fr965 fr955 fenix8; do
-            connectiq-sdk/bin/monkeyc \
-              -d $device \
-              --override-devices-json ~/.Garmin/ConnectIQ/Devices \
-              -f monkey.jungle \
-              -o bin/regatta-$device.prg \
-              -y developer_key.der \
-              -l 0 2>&1 && echo "  ✓ $device" || echo "  ✗ $device"
-          done
-          ls -lh bin/*.prg
+          connectiq-sdk/bin/monkeyc \
+            -d fr965 \
+            --override-devices-json ~/.Garmin/ConnectIQ/Devices \
+            -f monkey.jungle \
+            -o bin/regatta-fr965.prg \
+            -y developer_key.der
+          ls -lh bin/regatta-fr965.prg
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -170,7 +110,7 @@ jobs:
           name: regatta-${{ github.sha }}
           path: |
             bin/regatta.iq
-            bin/regatta-*.prg
+            bin/regatta-fr965.prg
 
       - name: Upload to release
         if: startsWith(github.ref, 'refs/tags/')
@@ -178,4 +118,4 @@ jobs:
         with:
           files: |
             bin/regatta.iq
-            bin/regatta-*.prg
+            bin/regatta-fr965.prg

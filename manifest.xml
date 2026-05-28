@@ -3,14 +3,12 @@
   <iq:application
       entry="RegattaApp"
       launcherIcon="@Drawables.LauncherIcon"
-      id="a1b2c3d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d"
+      id="a3872ef8-5b7d-4c5e-9b1e-2f4d8a6c3e1f"
       name="@Strings.AppName"
       minApiLevel="3.2.0"
       type="watch-app">
     <iq:products>
       <iq:product id="fr965"/>
-      <iq:product id="fr955"/>
-      <iq:product id="fenix8"/>
     </iq:products>
     <iq:permissions>
       <iq:uses-permission id="Communications"/>
@@ -18,9 +16,6 @@
       <iq:uses-permission id="Sensor"/>
       <iq:uses-permission id="Background"/>
     </iq:permissions>
-    <iq:languages>
-      <iq:language>eng</iq:language>
-      <iq:language>dut</iq:language>
-    </iq:languages>
+    <iq:languages/>
   </iq:application>
 </iq:manifest>
