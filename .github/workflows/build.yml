@@ -64,11 +64,9 @@ jobs:
             echo "Developer key from GARMIN_DEVELOPER_KEY_B64 secret"
           else
             echo "Genereren via monkeyc -g..."
-            cd /tmp
-            connectiq-sdk/bin/monkeyc -g 2>&1 || true
+            "$GITHUB_WORKSPACE/connectiq-sdk/bin/monkeyc" -g 2>&1 || true
             if [ -f developer_key.der ] && [ -s developer_key.der ]; then
-              cp developer_key.der "$GITHUB_WORKSPACE/developer_key.der"
-              echo "Key gegenereerd: $(wc -c < "$GITHUB_WORKSPACE/developer_key.der") bytes"
+              echo "Key gegenereerd: $(wc -c < developer_key.der) bytes"
             else
               echo "::error::Kon geen developer key genereren."
               echo "Zet GARMIN_DEVELOPER_KEY_B64 secret op org-niveau."
