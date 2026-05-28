@@ -57,7 +57,7 @@ class RegattaView extends WatchUi.View {
         WatchUi.requestUpdate();
     }
 
-    function clearMessage() {
+    function clearMessage() as Void {
         _statusMessage = "";
         WatchUi.requestUpdate();
     }

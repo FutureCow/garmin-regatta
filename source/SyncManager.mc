@@ -79,11 +79,8 @@ class SyncManager {
             :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON
         };
 
-        // Data als Dictionary — body wordt meegestuurd
-        var content = {
-            :data => body,
-            :type => "upload"
-        };
+        // Content is the body string directly
+        var content = body;
 
         System.println("Transmit GPX to: " + url + " (" + gpxData.length() + " bytes)");
 
@@ -151,10 +148,7 @@ class SyncManager {
             :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON
         };
 
-        var content = {
-            :data => body,
-            :type => "join"
-        };
+        var content = body;
 
         Communications.transmit(
             content,
