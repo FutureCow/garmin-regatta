@@ -56,17 +56,17 @@ jobs:
           echo "Devices: $(ls ~/.Garmin/ConnectIQ/Devices/ | wc -l) gedefinieerd"
 
       # ── Developer key ──────────────────────────────────────────────────
-      - name: Setup developer key
+      # Vereist GARMIN_DEVELOPER_KEY_B64 secret (org-level of repo-level).
+      # Zelfde secret als regatta-screen gebruikt.
+      - name: Decode developer key
         run: |
-          if [ -n "$KEY_B64" ]; then
-            echo "$KEY_B64" | base64 --decode > developer_key.der
-            echo "Developer key from GARMIN_DEVELOPER_KEY_B64 secret"
-          else
-            echo "Generating developer key via monkeyc -g..."
-            connectiq-sdk/bin/monkeyc -g -y developer_key.der \
-              --override-devices-json ~/.Garmin/ConnectIQ/Devices \
-              -f monkey.jungle -o /dev/null -l 0
+          if [ -z "$KEY_B64" ]; then
+            echo "::error::GARMIN_DEVELOPER_KEY_B64 secret is niet ingesteld."
+            echo "Zet deze op org-niveau: Regatta-Companion → Settings → Secrets → Actions"
+            exit 1
           fi
+          echo "$KEY_B64" | base64 --decode > developer_key.der
+          echo "Developer key: $(wc -c < developer_key.der) bytes"
         env:
           KEY_B64: ${{ secrets.GARMIN_DEVELOPER_KEY_B64 }}
 
