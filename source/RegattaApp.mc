@@ -9,7 +9,7 @@
 //       ├── RegattaDelegate (WatchUi.BehaviorDelegate) — button/input handling
 //       ├── TimerModel                          — countdown + elapsed timer logic
 //       ├── GpsRecorder                         — FIT file GPS recording
-//       └── SyncManager                         — WiFi HTTP sync to regatta server
+//       └── SyncManager                         — BLE phone-relayed sync to regatta server
 
 using Toybox.Application;
 using Toybox.System;
@@ -95,6 +95,8 @@ class RegattaApp extends Application.AppBase {
     }
 
     // ─── Menu ──────────────────────────────────────────────────────────
+    // Sync uses BLE → Garmin Connect IQ app on phone → server.
+    // No WiFi required.
 
     function onMenu() {
         var menu = new WatchUi.Menu2({:title=>WatchUi.loadResource(Rez.Strings.MenuSettings)});

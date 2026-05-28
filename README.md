@@ -1,6 +1,6 @@
 # Regatta Garmin IQ
 
-Garmin watch app voor zeilwedstrijden — timer met GPS-recorder die synchroniseert met de [regatta-server](https://github.com/FutureCow/regatta-server).
+Garmin watch app voor zeilwedstrijden — timer met GPS-recorder die synchroniseert met de [regatta-server](https://github.com/FutureCow/regatta-server) via de Garmin Connect IQ app op je telefoon.
 
 Ondersteunde watches: **Fenix 6/7/8, Quatix 6/7, Forerunner 255/265/955/965, Epix 2, Enduro 2/3, MARQ 2, Tactix 7**
 
@@ -8,9 +8,23 @@ Ondersteunde watches: **Fenix 6/7/8, Quatix 6/7, Forerunner 255/265/955/965, Epi
 
 - ⏱️ **Afteltimer** — 5, 10 of 15 minuten preset, schakelt automatisch naar opgaande racetijd
 - 📡 **GPS Recorder** — start automatisch als de timer start, slaat trackpoints op 1 Hz
-- 📤 **WiFi Sync** — uploadt de GPX-track naar de regatta-server na de opname
+- 📤 **Sync via telefoon** — uploadt de GPX-track naar de regatta-server via de Garmin Connect IQ app (BLE → telefoon → server)
 - 🔗 **Race koppelen** — voer een deelnamecode in en tracks worden automatisch gekoppeld
 - ⚙️ **Instelbaar via Garmin IQ** — server URL, auth token en deelnamecode
+
+## Hoe het werkt
+
+```
+┌──────────┐    BLE     ┌──────────────────┐    HTTP    ┌──────────────┐
+│  Watch   │ ────────→  │ Garmin IQ app    │ ────────→  │ Regatta      │
+│ (Garmin) │            │ (telefoon)       │            │ server       │
+└──────────┘            └──────────────────┘            └──────────────┘
+```
+
+1. Je stopt de timer op je watch → GPX wordt gegenereerd
+2. De watch stuurt de data via Bluetooth naar de Garmin Connect IQ app op je telefoon
+3. De Garmin IQ app maakt de HTTP request naar de regatta-server
+4. Klaar — geen aparte companion app, geen WiFi op de watch nodig
 
 ## Installatie
 
@@ -43,10 +57,19 @@ Open **Garmin Connect IQ** op je telefoon → Mijn apparaat → Regatta → Inst
 Je hebt de [Garmin Connect IQ SDK](https://developer.garmin.com/connect-iq/sdk/) nodig.
 
 ```bash
-# SDK downloaden en uitpakken
-# Monkey C compiler aanroepen:
+# Genereer developer key (eenmalig)
+monkeyc -g -y developer_key.der
+
+# Build
 monkeyc -f monkey.jungle -o bin/regatta.iq -y developer_key.der
 ```
+
+## CI/CD
+
+Bij elke push naar `master` bouwt GitHub Actions automatisch een `.iq` file:
+
+- Checkout → Download Garmin SDK → Build → Upload artifact
+- De `.iq` file is te downloaden vanaf de Actions pagina
 
 ## Projectstructuur
 
@@ -60,8 +83,11 @@ garmin-regatta/
 │   ├── RegattaDelegate.mc    # Button/touch input handling
 │   ├── TimerModel.mc         # Countdown + elapsed timer logic
 │   ├── GpsRecorder.mc        # GPS recording + FIT + GPX export
-│   └── SyncManager.mc       # WiFi HTTP sync naar regatta server
+│   └── SyncManager.mc        # BLE phone-relayed HTTP sync
 └── resources/
     ├── strings.xml           # Vertaalbare strings (EN/NL)
-    └── settings.xml          # App instellingen (server URL, token)
+    ├── settings.xml          # App instellingen (server URL, token)
+    └── drawables/
+        ├── drawables.xml     # Icon mapping
+        └── launcher.png      # App icoon (40×40)
 ```

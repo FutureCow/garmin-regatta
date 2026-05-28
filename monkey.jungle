@@ -24,8 +24,8 @@ monkey.targetDevices = [
     tactix7, tactix7pro
 ]
 
-# Minimum API level
-monkey.minApiLevel = 3.1.0
+# Minimum API level (3.2.0 for Communications.transmit())
+monkey.minApiLevel = 3.2.0
 
 # Optimisation
 monkey.optimization = true

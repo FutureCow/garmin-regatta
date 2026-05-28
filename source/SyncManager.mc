@@ -1,13 +1,14 @@
-// SyncManager.mc — WiFi sync to regatta server
+// SyncManager.mc — Phone-relayed sync to regatta server
 //
-// Uploads GPX track data to the regatta-server API via WiFi.
-// Handles authentication via JWT token (set in Garmin IQ settings).
+// Uploads GPX track data to the regatta-server API via the Garmin
+// Connect IQ phone app. The watch communicates over BLE to the phone,
+// and the phone makes the actual HTTP request.
 //
 // Flow:
-//   1. Check WiFi connectivity
-//   2. Convert trackpoints → GPX XML
-//   3. POST to /api/tracks/upload (multipart form data)
-//   4. Optionally POST to /api/join with race code
+//   1. Build GPX XML from recorded trackpoints
+//   2. Communications.transmit() over BLE → phone → server
+//   3. Optionally join race via deelnamecode
+//   4. Clear local track data on success
 
 using Toybox.Communications;
 using Toybox.System;
@@ -16,7 +17,7 @@ using Toybox.Application;
 class SyncManager {
 
     hidden var _callback;
-    hidden var _pendingTracks;  // tracks waiting to be synced
+    hidden var _pendingTracks;
 
     function initialize() {
         _pendingTracks = [];
@@ -43,7 +44,6 @@ class SyncManager {
     function syncAllPending(callback) {
         _callback = callback;
 
-        // First try unsaved track points in memory
         var app = Application.getApp();
         var recorder = app.getGpsRecorder();
         var gpx = recorder.exportGpx();
@@ -55,24 +55,7 @@ class SyncManager {
         }
     }
 
-    // ─── Network Check ─────────────────────────────────────────────────
-
-    hidden function _checkNetwork() {
-        var deviceSettings = System.getDeviceSettings();
-        if (deviceSettings has :connectionAvailable &&
-            deviceSettings.connectionAvailable) {
-            return true;
-        }
-
-        // Check WiFi specifically
-        if (deviceSettings has :phoneConnected && deviceSettings.phoneConnected) {
-            return true; // Can use phone connection
-        }
-
-        return false;
-    }
-
-    // ─── Upload ────────────────────────────────────────────────────────
+    // ─── Upload via Phone (BLE → Garmin IQ → Server) ──────────────────
 
     hidden function _uploadGpx(gpxData) {
         var serverUrl = RegattaApp.getServerUrl();
@@ -83,16 +66,11 @@ class SyncManager {
             return;
         }
 
-        if (!_checkNetwork()) {
-            _notify(false, "Geen netwerk");
-            return;
-        }
-
         var url = serverUrl + "/api/tracks";
         var boundary = "----RegattaGarminBoundary";
-
-        // Build multipart form data manually
         var filename = "track_" + Time.now().value().format("%d") + ".gpx";
+
+        // Build multipart form data
         var body = "--" + boundary + "\r\n";
         body += "Content-Disposition: form-data; name=\"gpx\"; filename=\"" + filename + "\"\r\n";
         body += "Content-Type: application/gpx+xml\r\n\r\n";
@@ -104,27 +82,32 @@ class SyncManager {
             "Authorization" => "Bearer " + (authToken != null ? authToken : "")
         };
 
+        // Options voor transmit: URL, headers, method, response type
         var options = {
-            :method => Communications.HTTP_REQUEST_METHOD_POST,
+            :url => url,
             :headers => headers,
+            :method => Communications.HTTP_REQUEST_METHOD_POST,
             :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON
         };
 
-        System.println("Uploading GPX to: " + url + " (" + gpxData.length() + " bytes)");
+        // Data als Dictionary — transmit() verpakt dit via BLE naar de telefoon
+        var content = {
+            :data => body
+        };
 
-        Communications.makeWebRequest(
-            url,
-            { "body" => body },
+        System.println("Transmit GPX to: " + url + " (" + gpxData.length() + " bytes)");
+
+        Communications.transmit(
+            content,
             options,
-            method(:onUploadResponse)
+            new TransmitDelegate(method(:onUploadResponse))
         );
     }
 
     function onUploadResponse(responseCode, data) {
-        System.println("Upload response: " + responseCode);
+        System.println("Transmit response: " + responseCode);
 
         if (responseCode == 200 || responseCode == 201) {
-            // Parse response for track ID
             var trackId = null;
             try {
                 if (data != null && data has :id) {
@@ -149,13 +132,19 @@ class SyncManager {
             _notify(true, "Geupload ✓");
         } else if (responseCode == 401) {
             _notify(false, "Auth fout — check token");
+        } else if (responseCode == Communications.BLE_CONNECTION_UNAVAILABLE) {
+            _notify(false, "Geen verbinding met telefoon");
+        } else if (responseCode == Communications.BLE_QUEUE_FULL) {
+            _notify(false, "Wachtrij vol — probeer later");
+        } else if (responseCode == Communications.BLE_REQUEST_TOO_LARGE) {
+            _notify(false, "Track te groot voor BLE");
+            _saveForRetry();
         } else {
             var msg = "Fout " + responseCode;
             if (data != null && data.hasKey(:error)) {
                 msg = data[:error];
             }
             _notify(false, msg);
-            // Save track for later retry
             _saveForRetry();
         }
     }
@@ -167,10 +156,7 @@ class SyncManager {
         var authToken = RegattaApp.getAuthToken();
 
         var url = serverUrl + "/api/join";
-        var body = {
-            "code" => raceCode,
-            "trackId" => trackId
-        };
+        var body = "{\"code\":\"" + raceCode + "\",\"trackId\":" + trackId + "}";
 
         var headers = {
             "Content-Type" => "application/json",
@@ -178,16 +164,20 @@ class SyncManager {
         };
 
         var options = {
-            :method => Communications.HTTP_REQUEST_METHOD_POST,
+            :url => url,
             :headers => headers,
+            :method => Communications.HTTP_REQUEST_METHOD_POST,
             :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON
         };
 
-        Communications.makeWebRequest(
-            url,
-            body,
+        var content = {
+            :data => body
+        };
+
+        Communications.transmit(
+            content,
             options,
-            method(:onJoinResponse)
+            new TransmitDelegate(method(:onJoinResponse))
         );
     }
 
@@ -201,7 +191,6 @@ class SyncManager {
             }
             _notify(true, "Gekoppeld: " + raceName);
         } else {
-            // Upload succeeded, join failed — still count as success for upload
             _notify(true, "Geupload (niet gekoppeld)");
         }
 
@@ -225,5 +214,34 @@ class SyncManager {
             _callback.invoke(success, message);
         }
         _callback = null;
+    }
+}
+
+// ─── Transmit Delegate (Phone BLE → HTTP relay) ─────────────────────
+
+// Communications.transmit() requires a Communications.TransmitListener
+// delegate. This wraps the callback for async phone-relayed HTTP requests.
+class TransmitDelegate extends Communications.TransmitListener {
+
+    hidden var _callback;
+
+    function initialize(callback) {
+        TransmitListener.initialize();
+        _callback = callback;
+    }
+
+    // Called when the phone completes the HTTP request
+    function onTransmitComplete(responseCode, data) {
+        if (_callback != null) {
+            _callback.invoke(responseCode, data);
+        }
+    }
+
+    // Called when the transmission fails (no phone, timeout, etc.)
+    function onError(code) {
+        System.println("Transmit error: " + code);
+        if (_callback != null) {
+            _callback.invoke(code, null);
+        }
     }
 }
