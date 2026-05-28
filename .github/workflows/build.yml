@@ -64,12 +64,9 @@ jobs:
             echo "$KEY_B64" | base64 --decode > developer_key.der
             echo "Developer key gedecodeerd"
           else
-            echo "Geen GARMIN_DEVELOPER_KEY_B64 secret — genereer self-signed key"
-            openssl genrsa -out /tmp/dev_key.pem 2048
-            openssl req -new -key /tmp/dev_key.pem -out /tmp/dev_key.csr \
-              -subj "/C=NL/O=Regatta/CN=Regatta Developer"
-            openssl x509 -req -days 3650 -in /tmp/dev_key.csr \
-              -signkey /tmp/dev_key.pem -out developer_key.der -outform DER
+            echo "Geen GARMIN_DEVELOPER_KEY_B64 secret — genereer RSA private key"
+            openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 \
+              -outform DER -out developer_key.der
           fi
 
       # ── Build ──────────────────────────────────────────────────────────
