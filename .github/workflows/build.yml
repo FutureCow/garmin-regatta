@@ -3,8 +3,6 @@ name: Build Garmin IQ App
 on:
   push:
     branches: [master, main]
-    paths-ignore:
-      - '**.md'
   pull_request:
     branches: [master, main]
   workflow_dispatch:
@@ -17,10 +15,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
-      # ── Garmin Connect IQ SDK ──────────────────────────────────────────
-      # Zelfde aanpak als regatta-screen: direct downloaden via sdks.json.
-      # Geen Garmin account/login nodig.
 
       - name: Cache Connect IQ SDK
         id: cache-sdk
@@ -36,10 +30,8 @@ jobs:
             python3 -c "
           import json, sys
           data = json.load(sys.stdin)
-          # Neem laatste 8.x of 7.x — geen beta
-          stable = [s for s in data if not s.get('beta', False)]
-          stable.sort(key=lambda s: list(map(int, s['version'].split('.'))), reverse=True)
-          print(stable[0]['linux'])
+          data.sort(key=lambda s: list(map(int, s['version'].split('.'))), reverse=True)
+          print(data[0]['linux'])
           ")
           SDK_URL="https://developer.garmin.com/downloads/connect-iq/sdks/${SDK_FILE}"
           echo "Downloading: ${SDK_FILE}"
@@ -48,36 +40,50 @@ jobs:
           chmod +x connectiq-sdk/bin/monkeyc
           connectiq-sdk/bin/monkeyc --version
 
-      # ── Device definitions (nodig voor compiler) ────────────────────────
-      # Minimaal: alleen de devices die we targeten in manifest.xml.
-      - name: Create device definitions
-        run: |
-          python3 .github/scripts/create_devices.py
-          echo "Devices: $(ls ~/.Garmin/ConnectIQ/Devices/ | wc -l) gedefinieerd"
-
-      # ── Developer key ──────────────────────────────────────────────────
-      # Probeer eerst org/repo secret, anders genereer via monkeyc -g.
       - name: Setup developer key
         run: |
           if [ -n "$KEY_B64" ]; then
             echo "$KEY_B64" | base64 --decode > developer_key.der
-            echo "Developer key from GARMIN_DEVELOPER_KEY_B64 secret"
+            echo "Developer key from GARMIN_DEVELOPER_KEY_B64"
           else
-            echo "Genereren via monkeyc -g..."
-            "$GITHUB_WORKSPACE/connectiq-sdk/bin/monkeyc" -g \
-              -o /tmp/dummy.prg 2>&1 || true
-            if [ -f developer_key.der ] && [ -s developer_key.der ]; then
-              echo "Key gegenereerd: $(wc -c < developer_key.der) bytes"
-            else
-              echo "::error::Kon geen developer key genereren."
-              echo "Zet GARMIN_DEVELOPER_KEY_B64 secret op org-niveau."
-              exit 1
-            fi
+            echo "::error::GARMIN_DEVELOPER_KEY_B64 secret niet gevonden"
+            exit 1
           fi
         env:
           KEY_B64: ${{ secrets.GARMIN_DEVELOPER_KEY_B64 }}
 
-      # ── Build ──────────────────────────────────────────────────────────
+      # Zelfde aanpak als regatta-screen: één device compiler.json
+      - name: Create device definition (fr965)
+        run: |
+          mkdir -p ~/.Garmin/ConnectIQ/Devices/fr965
+          cat > ~/.Garmin/ConnectIQ/Devices/fr965/compiler.json << 'JSON'
+          {
+            "deviceId": "fr965",
+            "displayName": "Forerunner 965",
+            "deviceFamily": "round-454x454",
+            "worldWidePartNumber": "006-B4315-00",
+            "partNumbers": [
+              { "number": "006-B4315-00", "firmwareVersion": "2502", "connectIQVersion": "5.2.0" }
+            ],
+            "resolution": { "width": 454, "height": 454 },
+            "launcherIcon": { "width": 65, "height": 65 },
+            "bitsPerPixel": 16,
+            "orientation": "GFX_ORNTN_0",
+            "gpuSupport": true,
+            "alphaBlendingSupport": true,
+            "screenRotationSupport": false,
+            "exportSupport": true,
+            "codePageSize": 4096,
+            "appTypes": [
+              { "type": "watchApp",   "memoryLimit": 786432 },
+              { "type": "watchFace",  "memoryLimit": 131072 },
+              { "type": "datafield",  "memoryLimit": 262144 },
+              { "type": "background", "memoryLimit": 65536 },
+              { "type": "glance",     "memoryLimit": 65536 }
+            ]
+          }
+          JSON
+
       - name: Build .iq
         run: |
           mkdir -p bin
@@ -86,39 +92,31 @@ jobs:
             --override-devices-json ~/.Garmin/ConnectIQ/Devices \
             -f monkey.jungle \
             -o bin/regatta.iq \
-            -y developer_key.der \
-            -l 0 2>&1
-          echo "Build result: $?"
-          ls -lh bin/regatta.iq || echo "Geen .iq bestand"
+            -y developer_key.der
+          ls -lh bin/regatta.iq
 
-      # ── Build per-device .prg (voor sideloading) ──────────────────────
-      - name: Build per-device .prg
+      - name: Build fr965 .prg
         run: |
-          mkdir -p bin/devices
-          for device in fr965 fr955 fenix8 fenix7x; do
-            connectiq-sdk/bin/monkeyc \
-              -d $device \
-              --override-devices-json ~/.Garmin/ConnectIQ/Devices \
-              -f monkey.jungle \
-              -o bin/devices/regatta-$device.prg \
-              -y developer_key.der \
-              -l 0 2>/dev/null && echo "  ✓ $device" || echo "  ✗ $device"
-          done
+          connectiq-sdk/bin/monkeyc \
+            -d fr965 \
+            --override-devices-json ~/.Garmin/ConnectIQ/Devices \
+            -f monkey.jungle \
+            -o bin/regatta-fr965.prg \
+            -y developer_key.der
+          ls -lh bin/regatta-fr965.prg
 
-      # ── Upload artifact ────────────────────────────────────────────────
-      - name: Upload .iq artifact
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: regatta-${{ github.sha }}
           path: |
             bin/regatta.iq
-            bin/devices/
+            bin/regatta-fr965.prg
 
-      # ── Release upload (alleen bij tags) ───────────────────────────────
       - name: Upload to release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: |
             bin/regatta.iq
-            bin/devices/*.prg
+            bin/regatta-fr965.prg
