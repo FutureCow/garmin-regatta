@@ -87,8 +87,9 @@ jobs:
             -f monkey.jungle \
             -o bin/regatta.iq \
             -y developer_key.der \
-            -l 0
-          ls -lh bin/regatta.iq
+            -l 0 2>&1
+          echo "Build result: $?"
+          ls -lh bin/regatta.iq || echo "Geen .iq bestand"
 
       # ── Build per-device .prg (voor sideloading) ──────────────────────
       - name: Build per-device .prg
