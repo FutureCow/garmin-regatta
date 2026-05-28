@@ -80,7 +80,7 @@ class GpsRecorder {
 
     // ─── GPS Position Callback ─────────────────────────────────────────
 
-    function onPosition(info) {
+    function onPosition(info as Position.Info) {
         if (!_recording) { return; }
 
         if (info has :lat && info has :lon) {
@@ -98,7 +98,7 @@ class GpsRecorder {
         }
     }
 
-    function onUpdateTimer() {
+    function onUpdateTimer() as Void {
         if (_positionCallback != null) {
             _positionCallback.invoke(_pointCount);
         }
