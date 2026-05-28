@@ -1,23 +1,23 @@
 <settings>
     <setting propertyKey="ServerUrl" title="@Strings.ServerUrl">
         <settingConfig type="alphaNumeric">
-            <textConfig hint="@Strings.ServerUrlHint"
-                       defaultValue="https://regatta.fhettinga.nl"/>
+            <listEntry value="https://regatta.fhettinga.nl">@Strings.ServerUrlHint</listEntry>
         </settingConfig>
     </setting>
     <setting propertyKey="AuthToken" title="@Strings.AuthToken">
         <settingConfig type="alphaNumeric">
-            <textConfig hint="@Strings.AuthTokenHint"/>
+            <listEntry value="">@Strings.AuthTokenHint</listEntry>
         </settingConfig>
     </setting>
     <setting propertyKey="RaceCode" title="@Strings.RaceCode">
         <settingConfig type="alphaNumeric">
-            <textConfig hint="@Strings.RaceCodeHint"/>
+            <listEntry value="">@Strings.RaceCodeHint</listEntry>
         </settingConfig>
     </setting>
     <setting propertyKey="AutoSync" title="Auto-sync na opname">
         <settingConfig type="boolean">
-            <booleanConfig defaultValue="true"/>
+            <listEntry value="true">Aan</listEntry>
+            <listEntry value="false">Uit</listEntry>
         </settingConfig>
     </setting>
 </settings>
