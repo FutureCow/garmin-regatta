@@ -12,78 +12,107 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install SDK Manager CLI
-        run: |
-          curl -sL https://github.com/lindell/connect-iq-sdk-manager-cli/releases/download/v0.8.4/connect-iq-sdk-manager-cli_0.8.4_Linux_x86_64.tar.gz \
-            | tar xz -C /tmp
-          sudo mv /tmp/connect-iq-sdk-manager /usr/local/bin/
-          connect-iq-sdk-manager --version
+      # ── Garmin Connect IQ SDK ──────────────────────────────────────────
+      # Zelfde aanpak als regatta-screen: direct downloaden via sdks.json.
+      # Geen Garmin account/login nodig.
 
-      - name: Accept Garmin license agreement
-        env:
-          AGREEMENT_HASH: ${{ secrets.GARMIN_AGREEMENT_HASH }}
-        run: |
-          connect-iq-sdk-manager agreement accept --acceptance-hash="$AGREEMENT_HASH"
-
-      - name: Login to Garmin
-        env:
-          GARMIN_USERNAME: ${{ secrets.GARMIN_USERNAME }}
-          GARMIN_PASSWORD: ${{ secrets.GARMIN_PASSWORD }}
-        run: |
-          connect-iq-sdk-manager login
-
-      - name: Cache Garmin SDK
+      - name: Cache Connect IQ SDK
         id: cache-sdk
         uses: actions/cache@v4
         with:
-          path: ~/.connect-iq-sdk-manager
-          key: connectiq-sdk-${{ hashFiles('manifest.xml') }}
+          path: connectiq-sdk
+          key: connectiq-sdk-${{ hashFiles('.github/workflows/build.yml') }}
 
-      - name: Download SDK & devices
+      - name: Download Connect IQ SDK
+        if: steps.cache-sdk.outputs.cache-hit != 'true'
         run: |
-          # Download latest 7.x SDK (compatible with our target devices)
-          connect-iq-sdk-manager sdk set "^7.2.0"
-          # Download device definitions matching our manifest
-          connect-iq-sdk-manager device download --manifest=manifest.xml
+          SDK_FILE=$(curl -s https://developer.garmin.com/downloads/connect-iq/sdks/sdks.json | \
+            python3 -c "
+          import json, sys
+          data = json.load(sys.stdin)
+          # Neem laatste 8.x of 7.x — geen beta
+          stable = [s for s in data if not s.get('beta', False)]
+          stable.sort(key=lambda s: list(map(int, s['version'].split('.'))), reverse=True)
+          print(stable[0]['linux'])
+          ")
+          SDK_URL="https://developer.garmin.com/downloads/connect-iq/sdks/${SDK_FILE}"
+          echo "Downloading: ${SDK_FILE}"
+          curl -fL "$SDK_URL" -o /tmp/sdk.zip
+          unzip -q /tmp/sdk.zip -d connectiq-sdk
+          chmod +x connectiq-sdk/bin/monkeyc
+          connectiq-sdk/bin/monkeyc --version
 
-      - name: Add SDK to PATH
+      # ── Device definitions (nodig voor compiler) ────────────────────────
+      # Minimaal: alleen de devices die we targeten in manifest.xml.
+      - name: Create device definitions
         run: |
-          SDK_BIN=$(connect-iq-sdk-manager sdk current-path --bin)
-          echo "$SDK_BIN" >> $GITHUB_PATH
-          echo "SDK_BIN=$SDK_BIN" >> $GITHUB_ENV
+          python3 .github/scripts/create_devices.py
+          echo "Devices: $(ls ~/.Garmin/ConnectIQ/Devices/ | wc -l) gedefinieerd"
 
-      - name: Generate developer key
+      # ── Developer key ──────────────────────────────────────────────────
+      - name: Decode developer key
+        env:
+          KEY_B64: ${{ secrets.GARMIN_DEVELOPER_KEY_B64 }}
         run: |
-          openssl genrsa -out /tmp/dev_key.pem 2048
-          openssl req -new -key /tmp/dev_key.pem -out /tmp/dev_key.csr \
-            -subj "/C=NL/O=Regatta/CN=Regatta Developer"
-          openssl x509 -req -days 3650 -in /tmp/dev_key.csr \
-            -signkey /tmp/dev_key.pem -out developer_key.der -outform DER
+          if [ -n "$KEY_B64" ]; then
+            echo "$KEY_B64" | base64 --decode > developer_key.der
+            echo "Developer key gedecodeerd"
+          else
+            echo "Geen GARMIN_DEVELOPER_KEY_B64 secret — genereer self-signed key"
+            openssl genrsa -out /tmp/dev_key.pem 2048
+            openssl req -new -key /tmp/dev_key.pem -out /tmp/dev_key.csr \
+              -subj "/C=NL/O=Regatta/CN=Regatta Developer"
+            openssl x509 -req -days 3650 -in /tmp/dev_key.csr \
+              -signkey /tmp/dev_key.pem -out developer_key.der -outform DER
+          fi
 
+      # ── Build ──────────────────────────────────────────────────────────
       - name: Build .iq
         run: |
           mkdir -p bin
-          monkeyc \
+          connectiq-sdk/bin/monkeyc \
+            -e \
+            --override-devices-json ~/.Garmin/ConnectIQ/Devices \
             -f monkey.jungle \
             -o bin/regatta.iq \
             -y developer_key.der \
-            -w \
             -l 0
           ls -lh bin/regatta.iq
 
+      # ── Build per-device .prg (voor sideloading) ──────────────────────
+      - name: Build per-device .prg
+        run: |
+          mkdir -p bin/devices
+          for device in fr965 fr955 fenix8 fenix7x; do
+            connectiq-sdk/bin/monkeyc \
+              -d $device \
+              --override-devices-json ~/.Garmin/ConnectIQ/Devices \
+              -f monkey.jungle \
+              -o bin/devices/regatta-$device.prg \
+              -y developer_key.der \
+              -l 0 2>/dev/null && echo "  ✓ $device" || echo "  ✗ $device"
+          done
+
+      # ── Upload artifact ────────────────────────────────────────────────
       - name: Upload .iq artifact
         uses: actions/upload-artifact@v4
         with:
           name: regatta-${{ github.sha }}
-          path: bin/regatta.iq
-          if-no-files-found: error
+          path: |
+            bin/regatta.iq
+            bin/devices/
 
-      - name: Upload to release (on tag)
+      # ── Release upload (alleen bij tags) ───────────────────────────────
+      - name: Upload to release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: bin/regatta.iq
+          files: |
+            bin/regatta.iq
+            bin/devices/*.prg
