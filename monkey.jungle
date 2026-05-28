@@ -1,6 +1,3 @@
-# monkey.jungle — Garmin Connect IQ build configuration
-project.manifest = manifest.xml
-base.sourcePath = source
-base.resourcePath = resources
-base.outputPath = bin
-base.outputName = regatta
+project.manifest=manifest.xml
+base.sourcePath=source
+base.resourcePath=resources
