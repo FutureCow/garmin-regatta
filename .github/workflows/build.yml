@@ -21,7 +21,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: connectiq-sdk
-          key: connectiq-sdk-${{ hashFiles('.github/workflows/build.yml') }}
+          key: connectiq-sdk-v2-${{ hashFiles('.github/workflows/build.yml') }}
 
       - name: Download Connect IQ SDK
         if: steps.cache-sdk.outputs.cache-hit != 'true'
