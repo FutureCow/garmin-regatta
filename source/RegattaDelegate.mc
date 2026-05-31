@@ -47,22 +47,26 @@ class RegattaDelegate extends WatchUi.BehaviorDelegate {
         return true;
     }
 
-    // BACK button — Reset (when stopped) or exit (when running)
+    // BACK button — Exit (idle), Reset (paused), Block (running)
     function onBack() {
         var app = Application.getApp();
         var timer = app.getTimerModel();
 
         if (timer.isRunning()) {
-            // Running — ignore back (prevent accidental exit)
-            // Show confirmation? For now, do nothing.
+            // Running — block back (prevent accidental exit)
             return true;
         }
 
-        // When stopped, back resets the timer
-        timer.reset();
-        app.getGpsRecorder().stop();
-        WatchUi.requestUpdate();
-        return true; // Consume the event
+        if (timer.isPaused()) {
+            // Stopped — reset timer and GPS
+            timer.reset();
+            app.getGpsRecorder().stop();
+            WatchUi.requestUpdate();
+            return true;
+        }
+
+        // Idle — let system handle (exit app)
+        return false;
     }
 
     // Touch screen tap (for touch-enabled watches)
