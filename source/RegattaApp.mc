@@ -60,7 +60,7 @@ class RegattaApp extends Application.AppBase {
         }
     }
 
-    function onUiTick() {
+    function onUiTick() as Void {
         WatchUi.requestUpdate();
     }
 
