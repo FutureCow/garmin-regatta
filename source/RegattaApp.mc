@@ -36,11 +36,13 @@ class RegattaApp extends Application.AppBase {
 
     // ─── App Lifecycle ────────────────────────────────────────────────
 
-    function onStart(state) {
-        // Build and push the main view
+    function getInitialView() as [WatchUi.Views] or [WatchUi.Views, WatchUi.InputDelegates] {
         _view = new RegattaView();
         var delegate = new RegattaDelegate(method(:onMenu), method(:onSelect));
-        WatchUi.pushView(_view, delegate, WatchUi.SLIDE_IMMEDIATE);
+        return [_view, delegate];
+    }
+
+    function onStart(state) {
     }
 
     function onStop(state) {
