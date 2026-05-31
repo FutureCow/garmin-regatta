@@ -3,7 +3,7 @@
   <iq:application
       entry="RegattaApp"
       launcherIcon="@Drawables.LauncherIcon"
-      id="a3872ef8-5b7d-4c5e-9b1e-2f4d8a6c3e1f"
+      id="b4f9a1c2-6e8d-4f3a-9c7b-1d5e2f8a4b6c"
       name="@Strings.AppName"
       minApiLevel="3.2.0"
       type="watch-app">
