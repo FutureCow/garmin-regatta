@@ -144,4 +144,37 @@ class RegattaView extends WatchUi.View {
             dc.drawText(cx, cy, fs, _statusMessage, Graphics.TEXT_JUSTIFY_CENTER);
         }
     }
+
+    // ─── Always-On Display (low-power mode) ──────────────────────
+    // Called ~1/sec when screen dims. 1-bit monochrome only
+    // (COLOR_WHITE / COLOR_BLACK). Keeps timer visible.
+
+    function onPartialUpdate(dc) {
+        var timer = _timerModel;
+        if (timer == null || !timer.isRunning()) { return; }
+
+        var w = dc.getWidth();
+        var h = dc.getHeight();
+        var cx = w / 2;
+        var fs = Graphics.FONT_XTINY;
+
+        // Black background
+        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
+        dc.clear();
+
+        // Label
+        var labelStr = timer.getLabel();
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, 50, fs, labelStr, Graphics.TEXT_JUSTIFY_CENTER);
+
+        // Timer (large, centered)
+        var displayStr = timer.getDisplayString();
+        var font = Graphics.FONT_NUMBER_MEDIUM;  // smaller font saves power
+        dc.drawText(cx, h / 2 + 10, font, displayStr, Graphics.TEXT_JUSTIFY_CENTER);
+
+        // GPS dot (if recording)
+        if (_gpsRecorder != null && _gpsRecorder.isRecording()) {
+            dc.fillCircle(cx, h - 50, 3);
+        }
+    }
 }
