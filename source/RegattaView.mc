@@ -124,12 +124,10 @@ class RegattaView extends WatchUi.View {
         else if (!isIdle) { hint = "HERVAT"; }
         dc.drawText(cx, hintY, fs, hint, Graphics.TEXT_JUSTIFY_CENTER);
 
-        // Overlay
+        // ─── Status message (above timer, not overlaying digits) ─────
         if (_statusMessage.length() > 0) {
-            dc.setColor(cb, cb);
-            dc.fillRectangle(0, cy - 15, w, 30);
             dc.setColor(cp, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx, cy, fs, _statusMessage, Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(cx, 80, fs, _statusMessage, Graphics.TEXT_JUSTIFY_CENTER);
         }
     }
 
