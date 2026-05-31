@@ -1,8 +1,4 @@
 // SettingsDelegate.mc — Input handling voor SettingsView
-//
-// UP/DOWN: navigeren door instellingen
-// START/ENTER: selecteren/wijzigen
-// BACK: terug (of karakter terug in edit mode)
 
 using Toybox.WatchUi;
 using Toybox.System;
@@ -16,26 +12,25 @@ class SettingsDelegate extends WatchUi.BehaviorDelegate {
         _view = view;
     }
 
-    function onSelect() {
+    function onSelect() as Boolean {
         _view.selectItem();
         return true;
     }
 
-    function onNextPage() {
+    function onNextPage() as Boolean {
         _view.nextItem();
         return true;
     }
 
-    function onPreviousPage() {
+    function onPreviousPage() as Boolean {
         _view.prevItem();
         return true;
     }
 
-    function onBack() {
+    function onBack() as Boolean {
         if (_view.backItem()) {
-            return true; // Handled by view (edit mode)
+            return true;
         }
-        // Pop settings view
         WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
         return true;
     }

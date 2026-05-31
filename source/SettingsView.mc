@@ -2,12 +2,6 @@
 //
 // Via MENU → Instellingen bereikbaar. Alle instellingen worden
 // direct op het horloge beheerd — geen telefoon nodig.
-//
-// Settings:
-//   Server URL  → picklist met veelgebruikte URLs
-//   Auth token  → toon status + wissen
-//   Race code   → tekstinvoer (max 10 chars)
-//   Auto sync   → toggle
 
 using Toybox.WatchUi;
 using Toybox.Graphics;
@@ -24,7 +18,6 @@ class SettingsView extends WatchUi.View {
     hidden var _selectedIndex = 0;
     hidden var _editMode = false;
     hidden var _editField = "";
-    hidden var _editChars = "";
     hidden var _editPos = 0;
     hidden var _editCharIdx = 0;
 
@@ -59,9 +52,7 @@ class SettingsView extends WatchUi.View {
     function nextItem() {
         if (_editMode) {
             _editCharIdx = (_editCharIdx + 1) % _charSet.length();
-            _editField = _editField.substring(0, _editPos) +
-                         _charSet.substring(_editCharIdx, _editCharIdx + 1) +
-                         (_editPos + 1 < _editField.length() ? _editField.substring(_editPos + 1, _editField.length()) : "");
+            _applyEditChar();
         } else {
             _selectedIndex = (_selectedIndex + 1) % 4;
         }
@@ -71,65 +62,77 @@ class SettingsView extends WatchUi.View {
     function prevItem() {
         if (_editMode) {
             _editCharIdx = (_editCharIdx - 1 + _charSet.length()) % _charSet.length();
-            _editField = _editField.substring(0, _editPos) +
-                         _charSet.substring(_editCharIdx, _editCharIdx + 1) +
-                         (_editPos + 1 < _editField.length() ? _editField.substring(_editPos + 1, _editField.length()) : "");
+            _applyEditChar();
         } else {
             _selectedIndex = (_selectedIndex - 1 + 4) % 4;
         }
         WatchUi.requestUpdate();
     }
 
+    hidden function _applyEditChar() {
+        // Vervang karakter op _editPos door _charSet[_editCharIdx]
+        var before = "";
+        var after = "";
+        if (_editPos > 0) {
+            before = _editField.substring(0, _editPos);
+        }
+        if (_editPos + 1 < _editField.length()) {
+            after = _editField.substring(_editPos + 1, _editField.length());
+        }
+        _editField = before + _charSet.substring(_editCharIdx, _editCharIdx + 1) + after;
+    }
+
     function selectItem() {
         if (_editMode) {
-            // Volgende karakter
-            _editPos++;
+            _editPos = _editPos + 1;
             if (_editPos >= _editField.length()) {
-                // Klaar met invoeren
                 _finishEdit();
             } else {
-                _editCharIdx = _charSet.find(_editField.substring(_editPos, _editPos + 1));
-                if (_editCharIdx == null) { _editCharIdx = 0; }
+                _syncEditCharFromField();
             }
             WatchUi.requestUpdate();
             return;
         }
 
         if (_selectedIndex == 0) {
-            // Server URL — cycle through presets
             _cycleServerUrl();
         } else if (_selectedIndex == 1) {
-            // Auth token — toggle wissen
-            if (_authToken == null || _authToken.length() == 0) {
-                // Kan niet instellen via watch, toon melding
-            } else {
+            // Auth token — wissen indien ingesteld
+            if (_authToken != null && _authToken.length() > 0) {
                 _authToken = null;
                 _saveAll();
             }
         } else if (_selectedIndex == 2) {
-            // Race code — start edit
             _startRaceCodeEdit();
         } else if (_selectedIndex == 3) {
-            // Auto sync — toggle
             _autoSync = !_autoSync;
             _saveAll();
         }
         WatchUi.requestUpdate();
     }
 
-    function backItem() {
+    function backItem() as Boolean {
         if (_editMode) {
             if (_editPos > 0) {
-                _editPos--;
-                _editCharIdx = _charSet.find(_editField.substring(_editPos, _editPos + 1));
-                if (_editCharIdx == null) { _editCharIdx = 0; }
+                _editPos = _editPos - 1;
+                _syncEditCharFromField();
             } else {
                 _finishEdit();
             }
             WatchUi.requestUpdate();
             return true;
         }
-        return false; // Pop view
+        return false;
+    }
+
+    hidden function _syncEditCharFromField() {
+        var ch = _editField.substring(_editPos, _editPos + 1);
+        var found = _charSet.find(ch);
+        if (found == null) {
+            _editCharIdx = 0;
+        } else {
+            _editCharIdx = found;
+        }
     }
 
     // ─── Server URL cycler ────────────────────────────────────────
@@ -137,12 +140,12 @@ class SettingsView extends WatchUi.View {
     hidden var _urlPresets = [
         "https://regatta.fhettinga.nl",
         "http://192.168.1.89:3000",
-        null  // "Geen" / wissen
+        null
     ];
 
-    function _cycleServerUrl() {
+    hidden function _cycleServerUrl() {
         var currentIdx = -1;
-        for (var i = 0; i < _urlPresets.size(); i++) {
+        for (var i = 0; i < _urlPresets.size(); i = i + 1) {
             if (_serverUrl == _urlPresets[i]) {
                 currentIdx = i;
                 break;
@@ -155,31 +158,33 @@ class SettingsView extends WatchUi.View {
 
     // ─── Race code editor ─────────────────────────────────────────
 
-    function _startRaceCodeEdit() {
+    hidden function _startRaceCodeEdit() {
         _editMode = true;
         if (_raceCode == null || _raceCode.length() == 0) {
-            _editField = "        "; // 8 spaties
+            _editField = "        ";
             _editPos = 0;
             _editCharIdx = 0;
         } else {
             _editField = _raceCode;
             _editPos = 0;
-            _editCharIdx = _charSet.find(_editField.substring(0, 1));
-            if (_editCharIdx == null) { _editCharIdx = 0; }
+            _syncEditCharFromField();
         }
     }
 
-    function _finishEdit() {
+    hidden function _finishEdit() {
         _editMode = false;
-        // Trim en opslaan
         var result = "";
-        for (var i = 0; i < _editField.length(); i++) {
+        for (var i = 0; i < _editField.length(); i = i + 1) {
             var c = _editField.substring(i, i + 1);
             if (!c.equals(" ")) {
-                result += c;
+                result = result + c;
             }
         }
-        _raceCode = result.length() > 0 ? result : null;
+        if (result.length() > 0) {
+            _raceCode = result;
+        } else {
+            _raceCode = null;
+        }
         _saveAll();
     }
 
@@ -189,66 +194,82 @@ class SettingsView extends WatchUi.View {
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
         dc.clear();
 
-        var width = dc.getWidth();
-        var height = dc.getHeight();
-        var cx = width / 2;
+        var w = dc.getWidth();
+        var h = dc.getHeight();
+        var cx = w / 2;
 
-        var colorPrimary = 0x55FFFF;
-        var colorWhite = Graphics.COLOR_WHITE;
-        var colorGrey = 0x888888;
-        var colorRed = 0xFF3333;
+        var cp = 0x55FFFF;  // teal primary
+        var cw = Graphics.COLOR_WHITE;
+        var cg = 0x888888;  // grey
 
         if (_editMode) {
-            _drawRaceCodeEditor(dc, width, height, cx, colorPrimary, colorWhite);
+            _drawRaceCodeEditor(dc, w, h, cx, cp, cw);
             return;
         }
 
         // Titel
-        dc.setColor(colorPrimary, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, height * 0.08, Graphics.FONT_XTINY, "INSTELLINGEN", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.setColor(cp, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, h / 10, Graphics.FONT_XTINY, "INSTELLINGEN", Graphics.TEXT_JUSTIFY_CENTER);
 
-        var startY = height * 0.18;
-        var rowH = height * 0.16;
+        var rowH = h / 6;
+        var startY = h / 5;
 
-        // Server URL
-        _drawRow(dc, 0, "Server", _formatUrl(_serverUrl), startY, rowH, cx, width, colorPrimary, colorWhite, colorGrey);
+        // Server
+        var urlLabel = _formatUrl(_serverUrl);
+        _drawRow(dc, 0, "Server", urlLabel, startY, rowH, cx, w, cp, cw, cg);
 
-        // Auth token
-        var tokenLabel = (_authToken != null && _authToken.length() > 0) ? "Ingesteld" : "Niet ingesteld";
-        _drawRow(dc, 1, "Token", tokenLabel, startY + rowH, rowH, cx, width, colorPrimary, colorWhite, colorGrey);
+        // Token
+        var tok = "Niet ingesteld";
+        if (_authToken != null && _authToken.length() > 0) {
+            tok = "Ingesteld";
+        }
+        _drawRow(dc, 1, "Token", tok, startY + rowH, rowH, cx, w, cp, cw, cg);
 
         // Race code
-        var codeLabel = (_raceCode != null && _raceCode.length() > 0) ? _raceCode : "—";
-        _drawRow(dc, 2, "Race code", codeLabel, startY + rowH * 2, rowH, cx, width, colorPrimary, colorWhite, colorGrey);
+        var rc = "—";
+        if (_raceCode != null && _raceCode.length() > 0) {
+            rc = _raceCode;
+        }
+        _drawRow(dc, 2, "Race code", rc, startY + rowH * 2, rowH, cx, w, cp, cw, cg);
 
         // Auto sync
-        var syncLabel = _autoSync ? "Aan" : "Uit";
-        _drawRow(dc, 3, "Auto sync", syncLabel, startY + rowH * 3, rowH, cx, width, colorPrimary, colorWhite, colorGrey);
+        var syn = "Uit";
+        if (_autoSync) {
+            syn = "Aan";
+        }
+        _drawRow(dc, 3, "Auto sync", syn, startY + rowH * 3, rowH, cx, w, cp, cw, cg);
 
-        // Hints onderaan
-        dc.setColor(colorGrey, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, height - 25, Graphics.FONT_XTINY, "UP/DOWN: kies", Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(cx, height - 10, Graphics.FONT_XTINY, "START: wijzig  BACK: terug", Graphics.TEXT_JUSTIFY_CENTER);
+        // Hints
+        dc.setColor(cg, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, h - 30, Graphics.FONT_XTINY, "UP/DOWN: kies", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, h - 15, Graphics.FONT_XTINY, "START: wijzig  BACK: terug", Graphics.TEXT_JUSTIFY_CENTER);
     }
 
-    function _drawRow(dc, index, label, value, y, h, cx, width, primary, white, grey) {
-        var isSelected = (_selectedIndex == index);
+    hidden function _drawRow(dc, idx, label, value, y, h, cx, w, cp, cw, cg) {
+        var sel = (_selectedIndex == idx);
+        var left = cx - (w * 4 / 10);
+        var boxW = w * 8 / 10;
 
-        if (isSelected) {
-            dc.setColor(primary, Graphics.COLOR_TRANSPARENT);
-            dc.drawRectangle(cx - width * 0.42, y - 2, width * 0.84, h - 4);
+        if (sel) {
+            dc.setColor(cp, Graphics.COLOR_TRANSPARENT);
+            dc.drawRectangle(left, y - 2, boxW, h - 4);
         }
 
-        dc.setColor(white, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx - width * 0.38, y + h * 0.3, Graphics.FONT_XTINY, label, Graphics.TEXT_JUSTIFY_LEFT);
+        var labelX = left + 8;
+        var valX = left + boxW - 8;
+        var textY = y + h / 3;
 
-        dc.setColor(isSelected ? primary : grey, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx + width * 0.38, y + h * 0.3, Graphics.FONT_XTINY, value, Graphics.TEXT_JUSTIFY_RIGHT);
+        dc.setColor(cw, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(labelX, textY, Graphics.FONT_XTINY, label, Graphics.TEXT_JUSTIFY_LEFT);
+
+        var vc = cg;
+        if (sel) { vc = cp; }
+        dc.setColor(vc, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(valX, textY, Graphics.FONT_XTINY, value, Graphics.TEXT_JUSTIFY_RIGHT);
     }
 
-    function _formatUrl(url) {
+    hidden function _formatUrl(url) {
         if (url == null || url.length() == 0) { return "—"; }
-        // Toon alleen het domein
         var s = url.toString();
         var idx = s.find("://");
         if (idx != null) {
@@ -262,48 +283,44 @@ class SettingsView extends WatchUi.View {
 
     // ─── Race Code Editor UI ───────────────────────────────────────
 
-    function _drawRaceCodeEditor(dc, width, height, cx, primary, white) {
-        // Titel
-        dc.setColor(primary, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, height * 0.08, Graphics.FONT_XTINY, "RACE CODE", Graphics.TEXT_JUSTIFY_CENTER);
+    hidden function _drawRaceCodeEditor(dc, w, h, cx, cp, cw) {
+        dc.setColor(cp, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, h / 10, Graphics.FONT_XTINY, "RACE CODE", Graphics.TEXT_JUSTIFY_CENTER);
 
-        // Huidige invoer
-        dc.setColor(white, Graphics.COLOR_TRANSPARENT);
-        var display = "";
-        for (var i = 0; i < _editField.length(); i++) {
-            if (i == _editPos) {
-                display += "[";
-            }
-            display += _editField.substring(i, i + 1);
-            if (i == _editPos) {
-                display += "]";
-            }
+        // Bouw display string met [cursor]
+        var disp = "";
+        for (var i = 0; i < _editField.length(); i = i + 1) {
+            if (i == _editPos) { disp = disp + "["; }
+            disp = disp + _editField.substring(i, i + 1);
+            if (i == _editPos) { disp = disp + "]"; }
         }
-        dc.drawText(cx, height * 0.22, Graphics.FONT_MEDIUM, display, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.setColor(cw, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, h / 5, Graphics.FONT_MEDIUM, disp, Graphics.TEXT_JUSTIFY_CENTER);
 
-        // Karakter strip (toon ±7 chars rond huidige)
-        var charY = height * 0.5;
-        var charW = width / 9;
-        var startIdx = _editCharIdx - 3;
-        if (startIdx < 0) { startIdx += _charSet.length(); }
-        for (var i = 0; i < 7; i++) {
-            var idx = (startIdx + i) % _charSet.length();
-            var ch = _charSet.substring(idx, idx + 1);
-            var x = cx + (i - 3) * charW;
-            if (idx == _editCharIdx) {
-                dc.setColor(Graphics.COLOR_BLACK, primary);
-                dc.fillRectangle(x - charW/2 + 2, charY - 14, charW - 4, 28);
-                dc.setColor(primary, Graphics.COLOR_TRANSPARENT);
+        // Karakter strip
+        var charY = h / 2;
+        var charW = w / 9;
+        var charLen = _charSet.length();
+
+        for (var i = 0; i < 7; i = i + 1) {
+            var ci = (_editCharIdx - 3 + i + charLen) % charLen;
+            var ch = _charSet.substring(ci, ci + 1);
+            var charX = cx + (i - 3) * charW;
+
+            if (ci == _editCharIdx) {
+                dc.setColor(Graphics.COLOR_BLACK, cp);
+                dc.fillRectangle(charX - charW/2 + 2, charY - 14, charW - 4, 28);
+                dc.setColor(cp, Graphics.COLOR_TRANSPARENT);
             } else {
-                dc.setColor(white, Graphics.COLOR_TRANSPARENT);
+                dc.setColor(cw, Graphics.COLOR_TRANSPARENT);
             }
-            dc.drawText(x, charY, Graphics.FONT_MEDIUM, ch, Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(charX, charY, Graphics.FONT_MEDIUM, ch, Graphics.TEXT_JUSTIFY_CENTER);
         }
 
         // Hints
-        var colorGrey = 0x888888;
-        dc.setColor(colorGrey, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, height - 25, Graphics.FONT_XTINY, "UP/DOWN: kies letter", Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(cx, height - 10, Graphics.FONT_XTINY, "START: volgende  BACK: vorige", Graphics.TEXT_JUSTIFY_CENTER);
+        var cg = 0x888888;
+        dc.setColor(cg, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, h - 30, Graphics.FONT_XTINY, "UP/DOWN: letter", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, h - 15, Graphics.FONT_XTINY, "START: volgende  BACK: vorige", Graphics.TEXT_JUSTIFY_CENTER);
     }
 }
