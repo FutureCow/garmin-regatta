@@ -41,13 +41,15 @@ class RegattaApp extends Application.AppBase {
     function getInitialView() as [WatchUi.Views] or [WatchUi.Views, WatchUi.InputDelegates] {
         _view = new RegattaView();
         var delegate = new RegattaDelegate(method(:onMenu), method(:onSelect));
+
+        // Start 1-second UI refresh timer
+        _uiTimer = new Timer.Timer();
+        _uiTimer.start(method(:onUiTick), 1000, true);
+
         return [_view, delegate];
     }
 
     function onStart(state) {
-        // Start 1-second UI refresh timer
-        _uiTimer = new Timer.Timer();
-        _uiTimer.start(method(:onUiTick), 1000, true);
     }
 
     function onStop(state) {

@@ -1,18 +1,14 @@
-// RegattaView.mc — Main watch face UI
+// RegattaView.mc — Main watch face UI, round 454×454 AMOLED
 //
-// Round 454×454 AMOLED screen. Physical buttons:
-//   LIGHT (top-left)     START/STOP (top-right)
-//   UP    (mid-left)     
-//   DOWN  (bot-left)     BACK       (bot-right)
+// Simple centered layout:
+//         AFTELLEN        (top area)
+//          05:00          (absolute center)
+//      5m   10m   15m     (below timer, idle only)
+//     ● GPS 32 pts        (GPS recording indicator)
+//      START / STOP       (bottom hint)
 //
-// Screen layout:
-//         ┌─────────┐
-//   MENU  │AFTELLEN │ START
-//    ⇣    │  05:00  │
-//         │5m 10m15m│
-//         │ GPS 32  │
-//   RESET │         │ STOP
-//         └─────────┘
+// Button hints are inline (bottom) — physical buttons on FR965:
+//   START/STOP = start/stop, UP = presets, DOWN = menu, BACK = reset
 
 using Toybox.WatchUi;
 using Toybox.Graphics;
@@ -51,12 +47,12 @@ class RegattaView extends WatchUi.View {
     }
 
     function onUpdate(dc) {
-        var w = dc.getWidth();   // 454
-        var h = dc.getHeight();  // 454
-        var cx = w / 2;          // 227
-        var cy = h / 2;          // 227
+        var w = dc.getWidth();
+        var h = dc.getHeight();
+        var cx = w / 2;
+        var cy = h / 2;
+        var fs = Graphics.FONT_XTINY;
 
-        // Colors
         var cp = 0x55FFFF;
         var cr = 0xFF3333;
         var cw = Graphics.COLOR_WHITE;
@@ -77,55 +73,14 @@ class RegattaView extends WatchUi.View {
         var labelStr = timer.getLabel();
         var isIdle = timer.isIdle();
         var isRunning = timer.isRunning();
-        var fs = Graphics.FONT_XTINY;
 
-        // ─── Button labels (at screen edges) ─────────────────────
-
-        // TOP-RIGHT → START/STOP button (x≈390, y≈60)
-        var brX = 385;
-        var blX = 65;
-        if (isRunning) {
-            dc.setColor(cr, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(brX, 60, fs, "STOP", Graphics.TEXT_JUSTIFY_CENTER);
-        } else if (isIdle) {
-            dc.setColor(cp, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(brX, 60, fs, "START", Graphics.TEXT_JUSTIFY_CENTER);
-        } else {
-            dc.setColor(cp, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(brX, 60, fs, "HERVAT", Graphics.TEXT_JUSTIFY_CENTER);
-        }
-
-        // MID-LEFT → UP button — cycle presets (when idle)
-        if (isIdle) {
-            var preset = timer.getPresetSeconds();
-            var pLabel = "5m";
-            if (preset == 600) { pLabel = "10m"; }
-            else if (preset == 900) { pLabel = "15m"; }
-            dc.setColor(cp, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(blX, 170, fs, pLabel, Graphics.TEXT_JUSTIFY_CENTER);
-            dc.drawText(blX, 190, fs, "▲", Graphics.TEXT_JUSTIFY_CENTER);
-        }
-
-        // BOT-LEFT → DOWN button — menu
-        dc.setColor(cg, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(blX, 330, fs, "▼", Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(blX, 350, fs, "MENU", Graphics.TEXT_JUSTIFY_CENTER);
-
-        // BOT-RIGHT → BACK button — reset (when stopped)
-        if (!isRunning) {
-            dc.setColor(cg, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(brX, 350, fs, "RESET", Graphics.TEXT_JUSTIFY_CENTER);
-        }
-
-        // ─── Center content ──────────────────────────────────────
-
-        // Label
+        // ─── Label ───────────────────────────────────────────────
         dc.setColor(cg, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, 50, fs, labelStr, Graphics.TEXT_JUSTIFY_CENTER);
 
-        // Timer (centered in screen)
+        // ─── Timer (screen center) ────────────────────────────────
         var tc = cw;
-        if (timer.isCountingDown() && timer.getRemainingSeconds() <= 10) {
+        if (timer.isCountingDown() && timer.getRemainingSeconds() <= 10 && isRunning) {
             tc = cr;
         } else if (!timer.isCountingDown() && isRunning) {
             tc = cp;
@@ -133,43 +88,49 @@ class RegattaView extends WatchUi.View {
         dc.setColor(tc, Graphics.COLOR_TRANSPARENT);
 
         var font = Graphics.FONT_NUMBER_THAI_HOT;
-        if (displayStr.length() > 5) {
-            font = Graphics.FONT_NUMBER_MEDIUM;
-        }
-        dc.drawText(cx, cy + 5, font, displayStr, Graphics.TEXT_JUSTIFY_CENTER);
+        if (displayStr.length() > 5) { font = Graphics.FONT_NUMBER_MEDIUM; }
+        dc.drawText(cx, cy, font, displayStr, Graphics.TEXT_JUSTIFY_CENTER);
 
-        // Preset selector (below timer, idle only)
+        // ─── Presets ─────────────────────────────────────────────
         if (isIdle) {
-            var pY = 310;
-            var colW = w / 3;
-
+            var pY = cy + 70;
+            var col = w / 3;
             dc.setColor(cg, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(colW / 2, pY, fs, "5m", Graphics.TEXT_JUSTIFY_CENTER);
-            dc.drawText(colW * 3 / 2, pY, fs, "10m", Graphics.TEXT_JUSTIFY_CENTER);
-            dc.drawText(colW * 5 / 2, pY, fs, "15m", Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(col / 2, pY, fs, "5m", Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(col * 3 / 2, pY, fs, "10m", Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(col * 5 / 2, pY, fs, "15m", Graphics.TEXT_JUSTIFY_CENTER);
 
             var sel = timer.getPresetSeconds();
-            var selX = colW / 2;
-            if (sel == 600) { selX = colW * 3 / 2; }
-            else if (sel == 900) { selX = colW * 5 / 2; }
+            var sx = col / 2;
+            if (sel == 600) { sx = col * 3 / 2; }
+            else if (sel == 900) { sx = col * 5 / 2; }
 
             dc.setColor(cp, Graphics.COLOR_TRANSPARENT);
-            dc.drawRectangle(selX - 22, pY - 8, 44, 22);
+            dc.drawRectangle(sx - 22, pY - 8, 44, 22);
             dc.setColor(cb, Graphics.COLOR_TRANSPARENT);
             var sl = "5m";
             if (sel == 600) { sl = "10m"; }
             else if (sel == 900) { sl = "15m"; }
-            dc.drawText(selX, pY, fs, sl, Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(sx, pY, fs, sl, Graphics.TEXT_JUSTIFY_CENTER);
         }
 
-        // GPS status (above hint, if recording)
+        // ─── GPS recording indicator ──────────────────────────────
+        var gpsY = h - 65;
         if (_gpsRecorder != null && _gpsRecorder.isRecording()) {
-            var gY = 375;
             dc.setColor(cr, Graphics.COLOR_TRANSPARENT);
-            dc.fillCircle(cx - 20, gY, 4);
+            dc.fillCircle(cx - 20, gpsY, 4);
             dc.setColor(cw, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx + 5, gY, fs, _gpsCount.format("%d") + " pts", Graphics.TEXT_JUSTIFY_LEFT);
+            dc.drawText(cx + 5, gpsY, fs,
+                        _gpsCount.format("%d") + " pts", Graphics.TEXT_JUSTIFY_LEFT);
         }
+
+        // ─── Bottom hints ─────────────────────────────────────────
+        var hintY = h - 30;
+        dc.setColor(cg, Graphics.COLOR_TRANSPARENT);
+        var hint = "START";
+        if (isRunning) { hint = "STOP"; }
+        else if (!isIdle) { hint = "HERVAT"; }
+        dc.drawText(cx, hintY, fs, hint, Graphics.TEXT_JUSTIFY_CENTER);
 
         // ─── Overlay ─────────────────────────────────────────────
         if (_statusMessage.length() > 0) {
