@@ -15,6 +15,7 @@ using Toybox.Application;
 using Toybox.System;
 using Toybox.WatchUi;
 using Toybox.Background;
+using Toybox.Timer;
 
 class RegattaApp extends Application.AppBase {
 
@@ -22,6 +23,7 @@ class RegattaApp extends Application.AppBase {
     hidden var _timerModel;
     hidden var _gpsRecorder;
     hidden var _syncManager;
+    hidden var _uiTimer;
 
     function initialize() {
         AppBase.initialize();
@@ -43,13 +45,23 @@ class RegattaApp extends Application.AppBase {
     }
 
     function onStart(state) {
+        // Start 1-second UI refresh timer
+        _uiTimer = new Timer.Timer();
+        _uiTimer.start(method(:onUiTick), 1000, true);
     }
 
     function onStop(state) {
-        // Clean up GPS to save battery
+        if (_uiTimer != null) {
+            _uiTimer.stop();
+            _uiTimer = null;
+        }
         if (_gpsRecorder != null && _gpsRecorder.isRecording()) {
             // GPS stays active — don't stop it here, app may be backgrounded
         }
+    }
+
+    function onUiTick() {
+        WatchUi.requestUpdate();
     }
 
     // ─── Settings Access ──────────────────────────────────────────────
