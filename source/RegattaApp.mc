@@ -124,18 +124,9 @@ class RegattaApp extends Application.AppBase {
 
         menu.addItem(
             new WatchUi.MenuItem(
-                "Instellingen",
+                WatchUi.loadResource(Rez.Strings.MenuSettings),
                 null,
                 3,
-                {}
-            )
-        );
-
-        menu.addItem(
-            new WatchUi.MenuItem(
-                "Open IQ Instellingen",
-                null,
-                4,
                 {}
             )
         );
@@ -153,11 +144,6 @@ class RegattaApp extends Application.AppBase {
         } else if (item == :syncAll) {
             _syncManager.syncAllPending(method(:onSyncComplete));
         } else if (item == :settings) {
-            // Open in-app settings
-            var settingsView = new SettingsView();
-            var settingsDelegate = new SettingsDelegate(settingsView);
-            WatchUi.pushView(settingsView, settingsDelegate, WatchUi.SLIDE_IMMEDIATE);
-        } else if (item == :iqSettings) {
             // Open Garmin Connect IQ settings — user configures there
             System.println("Open settings via Garmin Connect IQ app");
         }
@@ -212,8 +198,6 @@ class RegattaMenuDelegate extends WatchUi.Menu2InputDelegate {
             _callback.invoke(:syncAll);
         } else if (id == 3) {
             _callback.invoke(:settings);
-        } else if (id == 4) {
-            _callback.invoke(:iqSettings);
         }
         WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
     }
