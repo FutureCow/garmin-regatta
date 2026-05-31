@@ -124,7 +124,7 @@ class RegattaApp extends Application.AppBase {
         var menu = new WatchUi.Menu2({:title=>WatchUi.loadResource(Rez.Strings.MenuSettings)});
 
         // Menu items
-        if (_gpsRecorder.hasSavedFile()) {
+        if (_gpsRecorder.hasStoredTrack()) {
             menu.addItem(
                 new WatchUi.MenuItem(
                     WatchUi.loadResource(Rez.Strings.MenuUpload),
@@ -162,9 +162,9 @@ class RegattaApp extends Application.AppBase {
 
     function onMenuItem(item) {
         if (item == :upload) {
-            _syncManager.syncLatest(method(:onSyncComplete));
+            _syncManager.syncStored(method(:onSyncComplete));
         } else if (item == :syncAll) {
-            _syncManager.syncAllPending(method(:onSyncComplete));
+            _syncManager.syncStored(method(:onSyncComplete));
         } else if (item == :settings) {
             // Open Garmin Connect IQ settings — user configures there
             System.println("Open settings via Garmin Connect IQ app");
@@ -188,10 +188,11 @@ class RegattaApp extends Application.AppBase {
             timer.stop();
             app.getGpsRecorder().stop();
 
-            // Auto-sync if enabled
-            if (RegattaApp.getAutoSync()) {
-                app.getSyncManager().syncLatest(method(:onSyncComplete));
-            }
+            // Always save GPS track to watch storage immediately.
+            // No network activity here — upload happens later via menu
+            // so we never trigger the IQ/BLE dialog on the water.
+            app.getGpsRecorder().saveTrackPoints();
+            _view.showMessage("Saved");
         } else {
             // Start timer and GPS recording
             timer.start();

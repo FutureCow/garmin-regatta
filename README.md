@@ -8,13 +8,25 @@ Ondersteunde watches: **Fenix 6/7/8, Quatix 6/7, Forerunner 255/265/955/965, Epi
 
 - ⏱️ **Afteltimer** — 5, 10 of 15 minuten preset, schakelt automatisch naar opgaande racetijd
 - 📡 **GPS Recorder** — start automatisch als de timer start, slaat trackpoints op 1 Hz
-- 📤 **Sync via WiFi** — uploadt de GPX-track direct naar de regatta-server via WiFi (geen telefoon nodig)
+- 📤 **Opslaan & later uploaden** — GPS-track wordt lokaal opgeslagen bij stoppen; upload later via WiFi (menu → Upload)
 - 🔗 **Race koppelen** — voer een deelnamecode in en tracks worden automatisch gekoppeld
 - ⚙️ **Instelbaar via Garmin IQ** — server URL, auth token en deelnamecode
 
 ## Hoe het werkt
 
-```\n┌──────────┐    WiFi     ┌──────────────┐\n│  Watch   │ ─────────→  │ Regatta      │\n│ (Garmin) │   HTTP(S)   │ server       │\n└──────────┘             └──────────────┘\n```\n\n1. Je stopt de timer op je watch → GPX wordt gegenereerd\n2. De watch uploadt de GPX direct via WiFi naar de regatta-server\n3. Klaar — geen telefoon of BLE nodig\n\n> **Let op:** de watch moet verbonden zijn met WiFi. Als er geen WiFi is bij het stoppen, wordt de track bewaard en kun je hem later handmatig uploaden via het menu.
+```
+┌──────────┐    opslaan    ┌──────────────┐    WiFi     ┌──────────────┐
+│  Watch   │ ───────────→  │  Storage     │ ─────────→  │ Regatta      │
+│ (Garmin) │   lokaal      │  (horloge)   │   later     │ server       │
+└──────────┘               └──────────────┘             └──────────────┘
+```
+
+1. Je stopt de timer op je watch → GPS-track wordt **lokaal opgeslagen** op het horloge
+2. Geen netwerkactie op het water — geen BLE, geen IQ-dialoog
+3. Terug aan de kant: open het menu (DOWN) → **Upload** → track wordt via WiFi verstuurd
+4. Klaar — de track staat op de server
+
+> **Let op:** upload werkt alleen als de watch met WiFi verbonden is. Upload later via het menu wanneer je weer WiFi hebt.
 
 ## Installatie
 

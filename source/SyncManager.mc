@@ -4,7 +4,7 @@
 // via WiFi — no phone/BLE needed. Requires the watch to be WiFi-connected.
 //
 // Flow:
-//   watch → makeWebRequest(WiFi) → HTTP → regatta server
+//   Stop timer → save to watch storage → later: menu → Upload → WiFi → server
 //
 // Server accepts: POST /api/tracks  with JSON body { "gpx": "<xml>" }
 //                 POST /api/join    with JSON body { "code": "...", "trackId": N }
@@ -13,6 +13,7 @@ using Toybox.Communications;
 using Toybox.System;
 using Toybox.Application;
 using Toybox.Lang;
+using Toybox.Time;
 
 class SyncManager {
 
@@ -23,31 +24,23 @@ class SyncManager {
 
     // ─── Public API ────────────────────────────────────────────────────
 
-    function syncLatest(callback) {
+    function syncStored(callback) {
         _callback = callback;
-        var app = Application.getApp();
-        var recorder = app.getGpsRecorder();
 
-        var gpx = recorder.exportGpx();
+        // Load track points from persistent storage
+        var data = Application.Storage.getValue("gps_track");
+        if (data == null) {
+            _notify(false, "Geen opgeslagen track");
+            return;
+        }
+
+        var gpx = _storageToGpx(data.toString());
         if (gpx == null || gpx.length() == 0) {
             _notify(false, "Geen GPS data");
             return;
         }
 
         _uploadGpx(gpx);
-    }
-
-    function syncAllPending(callback) {
-        _callback = callback;
-        var app = Application.getApp();
-        var recorder = app.getGpsRecorder();
-        var gpx = recorder.exportGpx();
-
-        if (gpx != null && gpx.length() > 0) {
-            _uploadGpx(gpx);
-        } else {
-            _notify(false, "Geen tracks om te syncen");
-        }
     }
 
     // ─── Upload via WiFi (makeWebRequest → direct HTTP) ────────────────
@@ -130,12 +123,11 @@ class SyncManager {
             Application.Storage.deleteValue("gps_track");
             _notify(true, "Al bekend");
         } else if (responseCode == -1 || responseCode == -104) {
-            // -1 = generic error, -104 = BLE_CONNECTION_UNAVAILABLE (no WiFi)
             _notify(false, "Geen WiFi");
-            _saveForRetry();
+            // Data is already in storage from timer-stop, no need to re-save
         } else {
             _notify(false, "Fout " + responseCode);
-            _saveForRetry();
+            // Data stays in storage for retry
         }
     }
 
@@ -191,11 +183,73 @@ class SyncManager {
         Application.Storage.deleteValue("gps_track");
     }
 
-    // ─── Retry Storage ─────────────────────────────────────────────────
+    // ─── Storage → GPX conversion ──────────────────────────────────────
+    // Format: lat,lon,ele,time,speed|lat,lon,ele,time,speed|...
 
-    hidden function _saveForRetry() {
-        var app = Application.getApp();
-        app.getGpsRecorder().saveTrackPoints();
+    hidden function _storageToGpx(storedData) {
+        var points = _split(storedData, "|");
+        if (points.size() == 0) { return null; }
+
+        var gpx = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+        gpx += "<gpx version=\"1.1\" creator=\"Regatta Garmin\"";
+        gpx += " xmlns=\"http://www.topografix.com/GPX/1/1\">\n";
+        gpx += "  <trk>\n";
+        gpx += "    <name>Regatta Race</name>\n";
+        gpx += "    <trkseg>\n";
+
+        for (var i = 0; i < points.size(); i++) {
+            var fields = _split(points[i], ",");
+            if (fields.size() < 5) { continue; }
+
+            var lat = fields[0].toFloat();
+            var lon = fields[1].toFloat();
+            var ele = fields[2].toFloat();
+            var timeVal = fields[3].toNumber();
+            var speed = fields[4].toFloat();
+
+            var timeStr = _formatGpxTime(timeVal);
+
+            gpx += "      <trkpt lat=\"" + lat.format("%.6f") +
+                   "\" lon=\"" + lon.format("%.6f") + "\">\n";
+            gpx += "        <ele>" + ele.format("%.1f") + "</ele>\n";
+            gpx += "        <time>" + timeStr + "</time>\n";
+            if (speed > 0) {
+                gpx += "        <speed>" + speed.format("%.2f") + "</speed>\n";
+            }
+            gpx += "      </trkpt>\n";
+        }
+
+        gpx += "    </trkseg>\n";
+        gpx += "  </trk>\n";
+        gpx += "</gpx>";
+
+        return gpx;
+    }
+
+    hidden function _formatGpxTime(moment) {
+        var info = Time.Gregorian.info(new Time.Moment(moment), Time.FORMAT_SHORT);
+        return info.year.format("%04d") + "-" +
+               info.month.format("%02d") + "-" +
+               info.day.format("%02d") + "T" +
+               info.hour.format("%02d") + ":" +
+               info.min.format("%02d") + ":" +
+               info.sec.format("%02d") + "Z";
+    }
+
+    // Handmatige split() — Monkey C heeft geen String.split()
+    hidden function _split(str, delim) {
+        var result = [];
+        var remaining = str;
+        while (true) {
+            var pos = remaining.find(delim);
+            if (pos == null) {
+                result.add(remaining);
+                break;
+            }
+            result.add(remaining.substring(0, pos));
+            remaining = remaining.substring(pos + delim.length(), remaining.length());
+        }
+        return result;
     }
 
     // ─── Notification ──────────────────────────────────────────────────
