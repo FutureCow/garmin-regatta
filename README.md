@@ -26,7 +26,7 @@ Ondersteunde watches: **Fenix 6/7/8, Quatix 6/7, Forerunner 255/265/955/965, Epi
 3. Terug aan de kant: open het menu (DOWN) → **Upload** → track wordt via WiFi verstuurd
 4. Klaar — de track staat op de server
 
-> **Let op:** upload werkt alleen als de watch met WiFi verbonden is. Upload later via het menu wanneer je weer WiFi hebt.
+> **Let op:** upload werkt alleen als de watch met WiFi verbonden is. WiFi staat standaard uit op Garmin — zet het aan via Instellingen → Connectiviteit → Wi-Fi. Upload later via het menu wanneer je weer WiFi hebt.
 
 ## Installatie
 

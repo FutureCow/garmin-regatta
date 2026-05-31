@@ -123,7 +123,7 @@ class SyncManager {
             Application.Storage.deleteValue("gps_track");
             _notify(true, "Al bekend");
         } else if (responseCode == -1 || responseCode == -104) {
-            _notify(false, "Geen WiFi");
+            _notify(false, "Zet WiFi aan op horloge");
             // Data is already in storage from timer-stop, no need to re-save
         } else {
             _notify(false, "Fout " + responseCode);
