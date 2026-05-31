@@ -1,5 +1,5 @@
 <strings>
-    <string id="AppName">Regatta</string>
+    <string id="AppName">Regatta Timer</string>
 
     <!-- Timer -->
     <string id="TimerLabel">AFTELLEN</string>
