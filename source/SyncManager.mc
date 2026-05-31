@@ -51,6 +51,10 @@ class SyncManager {
     }
 
     // ─── Upload via WiFi (makeWebRequest → direct HTTP) ────────────────
+    //
+    // makeWebRequest() op FR965 gebruikt uitsluitend WiFi — er is GEEN
+    // BLE-fallback. Dus geen "IQ!" dialoog zoals bij transmit().
+    // Als WiFi niet beschikbaar is, komt de fout via de callback.
 
     hidden function _uploadGpx(gpxData) {
         var serverUrl = RegattaApp.getServerUrl();
