@@ -2,6 +2,7 @@
 
 using Toybox.WatchUi;
 using Toybox.System;
+using Toybox.Lang;
 
 class SettingsDelegate extends WatchUi.BehaviorDelegate {
 
@@ -12,22 +13,22 @@ class SettingsDelegate extends WatchUi.BehaviorDelegate {
         _view = view;
     }
 
-    function onSelect() as Boolean {
+    function onSelect() {
         _view.selectItem();
         return true;
     }
 
-    function onNextPage() as Boolean {
+    function onNextPage() {
         _view.nextItem();
         return true;
     }
 
-    function onPreviousPage() as Boolean {
+    function onPreviousPage() {
         _view.prevItem();
         return true;
     }
 
-    function onBack() as Boolean {
+    function onBack() {
         if (_view.backItem()) {
             return true;
         }

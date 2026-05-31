@@ -111,7 +111,7 @@ class SettingsView extends WatchUi.View {
         WatchUi.requestUpdate();
     }
 
-    function backItem() as Boolean {
+    function backItem() {
         if (_editMode) {
             if (_editPos > 0) {
                 _editPos = _editPos - 1;
