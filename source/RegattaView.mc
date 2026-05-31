@@ -83,23 +83,22 @@ class RegattaView extends WatchUi.View {
         }
         dc.drawText(cx, baselineY, font, displayStr, Graphics.TEXT_JUSTIFY_CENTER);
 
-        // Presets (idle only)
+        // Presets (idle only) — well below timer
         if (isIdle) {
-            var pY = cy + 50;
+            var pY = h - 100;
             var col = w / 3;
             dc.setColor(cg, Graphics.COLOR_TRANSPARENT);
             dc.drawText(col / 2, pY, fs, "5m", Graphics.TEXT_JUSTIFY_CENTER);
             dc.drawText(col * 3 / 2, pY, fs, "10m", Graphics.TEXT_JUSTIFY_CENTER);
             dc.drawText(col * 5 / 2, pY, fs, "15m", Graphics.TEXT_JUSTIFY_CENTER);
 
+            // Highlight selected preset with color (no rectangle)
             var sel = timer.getPresetSeconds();
             var sx = col / 2;
             if (sel == 600) { sx = col * 3 / 2; }
             else if (sel == 900) { sx = col * 5 / 2; }
 
             dc.setColor(cp, Graphics.COLOR_TRANSPARENT);
-            dc.drawRectangle(sx - 22, pY - 8, 44, 22);
-            dc.setColor(cb, Graphics.COLOR_TRANSPARENT);
             var sl = "5m";
             if (sel == 600) { sl = "10m"; }
             else if (sel == 900) { sl = "15m"; }
