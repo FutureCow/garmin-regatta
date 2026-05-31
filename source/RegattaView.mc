@@ -83,20 +83,21 @@ class RegattaView extends WatchUi.View {
         }
         dc.drawText(cx, baselineY, font, displayStr, Graphics.TEXT_JUSTIFY_CENTER);
 
-        // Presets (idle only) — well below timer
+        // Presets (idle only) — compact, slightly higher
         if (isIdle) {
-            var pY = h - 100;
-            var col = w / 3;
-            dc.setColor(cg, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(col / 2, pY, fs, "5m", Graphics.TEXT_JUSTIFY_CENTER);
-            dc.drawText(col * 3 / 2, pY, fs, "10m", Graphics.TEXT_JUSTIFY_CENTER);
-            dc.drawText(col * 5 / 2, pY, fs, "15m", Graphics.TEXT_JUSTIFY_CENTER);
+            var pY = h - 115;
+            var sp = 60;  // tighter spacing for round screen
 
-            // Highlight selected preset with color (no rectangle)
+            dc.setColor(cg, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx - sp, pY, fs, "5m", Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(cx, pY, fs, "10m", Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(cx + sp, pY, fs, "15m", Graphics.TEXT_JUSTIFY_CENTER);
+
+            // Highlight selected preset with color
             var sel = timer.getPresetSeconds();
-            var sx = col / 2;
-            if (sel == 600) { sx = col * 3 / 2; }
-            else if (sel == 900) { sx = col * 5 / 2; }
+            var sx = cx;
+            if (sel == 300) { sx = cx - sp; }
+            else if (sel == 900) { sx = cx + sp; }
 
             dc.setColor(cp, Graphics.COLOR_TRANSPARENT);
             var sl = "5m";
