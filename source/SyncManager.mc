@@ -1,11 +1,13 @@
-// SyncManager.mc — Phone-relayed HTTP sync to regatta server
+// SyncManager.mc — Direct WiFi upload to regatta server
 //
-// Uses Communications.transmit() which routes all data through the
-// Garmin Connect IQ phone app — no companion app needed.
-// The phone forwards HTTP requests to the regatta server.
+// Uses Communications.makeWebRequest() for direct HTTP from the watch
+// via WiFi — no phone/BLE needed. Requires the watch to be WiFi-connected.
 //
 // Flow:
-//   watch → transmit(BLE) → Garmin IQ app → HTTP → regatta server
+//   watch → makeWebRequest(WiFi) → HTTP → regatta server
+//
+// Server accepts: POST /api/tracks  with JSON body { "gpx": "<xml>" }
+//                 POST /api/join    with JSON body { "code": "...", "trackId": N }
 
 using Toybox.Communications;
 using Toybox.System;
@@ -47,7 +49,7 @@ class SyncManager {
         }
     }
 
-    // ─── Upload via Phone (BLE → Garmin IQ → Server) ──────────────────
+    // ─── Upload via WiFi (makeWebRequest → direct HTTP) ────────────────
 
     hidden function _uploadGpx(gpxData) {
         var serverUrl = RegattaApp.getServerUrl();
@@ -59,35 +61,34 @@ class SyncManager {
         }
 
         var url = serverUrl + "/api/tracks";
-        var boundary = "----RegattaGarminBoundary";
         var filename = "track_" + Time.now().value().format("%d") + ".gpx";
 
-        var body = "--" + boundary + "\r\n";
-        body += "Content-Disposition: form-data; name=\"gpx\"; filename=\"" + filename + "\"\r\n";
-        body += "Content-Type: application/gpx+xml\r\n\r\n";
-        body += gpxData + "\r\n";
-        body += "--" + boundary + "--\r\n";
+        // JSON body: {"gpx": "<xml>", "filename": "track_01.gpx"}
+        var params = {
+            "gpx" => gpxData,
+            "filename" => filename
+        };
 
-        // transmit() options: URL + headers → phone doet HTTP request
+        var headers = {
+            "Content-Type" => "application/json"
+        };
+        if (authToken != null) {
+            headers["Authorization"] = "Bearer " + authToken;
+        }
+
         var options = {
-            :url => url,
             :method => Communications.HTTP_REQUEST_METHOD_POST,
-            :headers => {
-                "Content-Type" => "multipart/form-data; boundary=" + boundary,
-                "Authorization" => "Bearer " + (authToken != null ? authToken : "")
-            },
+            :headers => headers,
             :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON
         };
 
-        // Content is the body string directly
-        var content = body;
+        System.println("WiFi upload GPX to: " + url + " (" + gpxData.length() + " bytes)");
 
-        System.println("Transmit GPX to: " + url + " (" + gpxData.length() + " bytes)");
-
-        Communications.transmit(
-            content,
+        Communications.makeWebRequest(
+            url,
+            params,
             options,
-            new _TransmitDelegate(method(:onUploadResponse), method(:onUploadError))
+            method(:onUploadResponse)
         );
     }
 
@@ -117,16 +118,20 @@ class SyncManager {
             _notify(true, "Geupload");
         } else if (responseCode == 401) {
             _notify(false, "Auth fout");
+        } else if (responseCode == 409) {
+            // Duplicate — still success from user's perspective
+            var app = Application.getApp();
+            app.getGpsRecorder().clearTrackPoints();
+            Application.Storage.deleteValue("gps_track");
+            _notify(true, "Al bekend");
+        } else if (responseCode == -1 || responseCode == -104) {
+            // -1 = generic error, -104 = BLE_CONNECTION_UNAVAILABLE (no WiFi)
+            _notify(false, "Geen WiFi");
+            _saveForRetry();
         } else {
             _notify(false, "Fout " + responseCode);
             _saveForRetry();
         }
-    }
-
-    function onUploadError(code) {
-        System.println("Upload error: " + code);
-        _notify(false, "Sync fout");
-        _saveForRetry();
     }
 
     // ─── Join Race ─────────────────────────────────────────────────────
@@ -136,24 +141,30 @@ class SyncManager {
         var authToken = RegattaApp.getAuthToken();
 
         var url = serverUrl + "/api/join";
-        var body = "{\"code\":\"" + raceCode + "\",\"trackId\":" + trackId + "}";
+
+        var params = {
+            "code" => raceCode,
+            "trackId" => trackId
+        };
+
+        var headers = {
+            "Content-Type" => "application/json"
+        };
+        if (authToken != null) {
+            headers["Authorization"] = "Bearer " + authToken;
+        }
 
         var options = {
-            :url => url,
             :method => Communications.HTTP_REQUEST_METHOD_POST,
-            :headers => {
-                "Content-Type" => "application/json",
-                "Authorization" => "Bearer " + (authToken != null ? authToken : "")
-            },
+            :headers => headers,
             :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON
         };
 
-        var content = body;
-
-        Communications.transmit(
-            content,
+        Communications.makeWebRequest(
+            url,
+            params,
             options,
-            new _TransmitDelegate(method(:onJoinResponse), method(:onJoinError))
+            method(:onJoinResponse)
         );
     }
 
@@ -175,13 +186,6 @@ class SyncManager {
         Application.Storage.deleteValue("gps_track");
     }
 
-    function onJoinError(code) {
-        _notify(true, "Geupload (niet gekoppeld)");
-        var app = Application.getApp();
-        app.getGpsRecorder().clearTrackPoints();
-        Application.Storage.deleteValue("gps_track");
-    }
-
     // ─── Retry Storage ─────────────────────────────────────────────────
 
     hidden function _saveForRetry() {
@@ -196,35 +200,5 @@ class SyncManager {
             _callback.invoke(success, message);
         }
         _callback = null;
-    }
-}
-
-// ─── Transmit Delegate ────────────────────────────────────────────────
-
-// Communications.ConnectionListener voor transmit() callbacks.
-// SDK 6+ pattern: onComplete() voor succes, onError() voor falen.
-class _TransmitDelegate extends Communications.ConnectionListener {
-
-    hidden var _onSuccess;
-    hidden var _onError;
-
-    function initialize(onSuccess, onError) {
-        ConnectionListener.initialize();
-        _onSuccess = onSuccess;
-        _onError = onError;
-    }
-
-    function onComplete() {
-        // Helaas geeft ConnectionListener geen responseCode/data terug.
-        // We moeten hopen dat de transmit geslaagd is.
-        if (_onSuccess != null) {
-            _onSuccess.invoke(200, null);
-        }
-    }
-
-    function onError() {
-        if (_onError != null) {
-            _onError.invoke(-1);
-        }
     }
 }

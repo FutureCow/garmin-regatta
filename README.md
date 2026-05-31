@@ -1,6 +1,6 @@
 # Regatta Garmin IQ
 
-Garmin watch app voor zeilwedstrijden — timer met GPS-recorder die synchroniseert met de [regatta-server](https://github.com/FutureCow/regatta-server) via de Garmin Connect IQ app op je telefoon.
+Garmin watch app voor zeilwedstrijden — timer met GPS-recorder die direct synchroniseert met de [regatta-server](https://github.com/FutureCow/regatta-server) via WiFi.
 
 Ondersteunde watches: **Fenix 6/7/8, Quatix 6/7, Forerunner 255/265/955/965, Epix 2, Enduro 2/3, MARQ 2, Tactix 7**
 
@@ -8,23 +8,13 @@ Ondersteunde watches: **Fenix 6/7/8, Quatix 6/7, Forerunner 255/265/955/965, Epi
 
 - ⏱️ **Afteltimer** — 5, 10 of 15 minuten preset, schakelt automatisch naar opgaande racetijd
 - 📡 **GPS Recorder** — start automatisch als de timer start, slaat trackpoints op 1 Hz
-- 📤 **Sync via telefoon** — uploadt de GPX-track naar de regatta-server via de Garmin Connect IQ app (BLE → telefoon → server)
+- 📤 **Sync via WiFi** — uploadt de GPX-track direct naar de regatta-server via WiFi (geen telefoon nodig)
 - 🔗 **Race koppelen** — voer een deelnamecode in en tracks worden automatisch gekoppeld
 - ⚙️ **Instelbaar via Garmin IQ** — server URL, auth token en deelnamecode
 
 ## Hoe het werkt
 
-```
-┌──────────┐    BLE     ┌──────────────────┐    HTTP    ┌──────────────┐
-│  Watch   │ ────────→  │ Garmin IQ app    │ ────────→  │ Regatta      │
-│ (Garmin) │            │ (telefoon)       │            │ server       │
-└──────────┘            └──────────────────┘            └──────────────┘
-```
-
-1. Je stopt de timer op je watch → GPX wordt gegenereerd
-2. De watch stuurt de data via Bluetooth naar de Garmin Connect IQ app op je telefoon
-3. De Garmin IQ app maakt de HTTP request naar de regatta-server
-4. Klaar — geen aparte companion app, geen WiFi op de watch nodig
+```\n┌──────────┐    WiFi     ┌──────────────┐\n│  Watch   │ ─────────→  │ Regatta      │\n│ (Garmin) │   HTTP(S)   │ server       │\n└──────────┘             └──────────────┘\n```\n\n1. Je stopt de timer op je watch → GPX wordt gegenereerd\n2. De watch uploadt de GPX direct via WiFi naar de regatta-server\n3. Klaar — geen telefoon of BLE nodig\n\n> **Let op:** de watch moet verbonden zijn met WiFi. Als er geen WiFi is bij het stoppen, wordt de track bewaard en kun je hem later handmatig uploaden via het menu.
 
 ## Installatie
 
@@ -83,7 +73,7 @@ garmin-regatta/
 │   ├── RegattaDelegate.mc    # Button/touch input handling
 │   ├── TimerModel.mc         # Countdown + elapsed timer logic
 │   ├── GpsRecorder.mc        # GPS recording + FIT + GPX export
-│   └── SyncManager.mc        # BLE phone-relayed HTTP sync
+│   └── SyncManager.mc        # WiFi direct HTTP sync
 └── resources/
     ├── strings.xml           # Vertaalbare strings (EN/NL)
     ├── settings.xml          # App instellingen (server URL, token)
