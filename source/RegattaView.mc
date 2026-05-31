@@ -78,7 +78,7 @@ class RegattaView extends WatchUi.View {
         dc.setColor(cg, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, 50, fs, labelStr, Graphics.TEXT_JUSTIFY_CENTER);
 
-        // ─── Timer (screen center) ────────────────────────────────
+        // ─── Timer (visually centered — drawText uses Y as baseline) ──
         var tc = cw;
         if (timer.isCountingDown() && timer.getRemainingSeconds() <= 10 && isRunning) {
             tc = cr;
@@ -88,8 +88,12 @@ class RegattaView extends WatchUi.View {
         dc.setColor(tc, Graphics.COLOR_TRANSPARENT);
 
         var font = Graphics.FONT_NUMBER_THAI_HOT;
-        if (displayStr.length() > 5) { font = Graphics.FONT_NUMBER_MEDIUM; }
-        dc.drawText(cx, cy, font, displayStr, Graphics.TEXT_JUSTIFY_CENTER);
+        var baselineY = cy + 20;  // baseline offset: large digits extend ~60px above baseline
+        if (displayStr.length() > 5) {
+            font = Graphics.FONT_NUMBER_MEDIUM;
+            baselineY = cy + 10;
+        }
+        dc.drawText(cx, baselineY, font, displayStr, Graphics.TEXT_JUSTIFY_CENTER);
 
         // ─── Presets ─────────────────────────────────────────────
         if (isIdle) {

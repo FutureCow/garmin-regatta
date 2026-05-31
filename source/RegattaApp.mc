@@ -16,6 +16,7 @@ using Toybox.System;
 using Toybox.WatchUi;
 using Toybox.Background;
 using Toybox.Timer;
+using Toybox.Attention;
 
 class RegattaApp extends Application.AppBase {
 
@@ -64,6 +65,10 @@ class RegattaApp extends Application.AppBase {
 
     function onUiTick() as Void {
         _timerModel.tick();
+        // Keep backlight on while timer is running
+        if (_timerModel.isRunning()) {
+            Attention.backlight(true);
+        }
         WatchUi.requestUpdate();
     }
 
