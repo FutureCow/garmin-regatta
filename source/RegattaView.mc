@@ -88,10 +88,10 @@ class RegattaView extends WatchUi.View {
         dc.setColor(tc, Graphics.COLOR_TRANSPARENT);
 
         var font = Graphics.FONT_NUMBER_THAI_HOT;
-        var baselineY = cy + 20;  // baseline offset: large digits extend ~60px above baseline
+        var baselineY = cy - 30;  // digits extend above baseline, so baseline goes higher
         if (displayStr.length() > 5) {
             font = Graphics.FONT_NUMBER_MEDIUM;
-            baselineY = cy + 10;
+            baselineY = cy - 15;
         }
         dc.drawText(cx, baselineY, font, displayStr, Graphics.TEXT_JUSTIFY_CENTER);
 
@@ -170,7 +170,7 @@ class RegattaView extends WatchUi.View {
         // Timer (large, centered)
         var displayStr = timer.getDisplayString();
         var font = Graphics.FONT_NUMBER_MEDIUM;  // smaller font saves power
-        dc.drawText(cx, h / 2 + 10, font, displayStr, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, h / 2 - 15, font, displayStr, Graphics.TEXT_JUSTIFY_CENTER);
 
         // GPS dot (if recording)
         if (_gpsRecorder != null && _gpsRecorder.isRecording()) {
