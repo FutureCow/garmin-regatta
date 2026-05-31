@@ -76,10 +76,10 @@ class RegattaView extends WatchUi.View {
         dc.setColor(tc, Graphics.COLOR_TRANSPARENT);
 
         var font = Graphics.FONT_NUMBER_THAI_HOT;
-        var baselineY = cy - 50;
+        var baselineY = cy - 60;
         if (displayStr.length() > 5) {
             font = Graphics.FONT_NUMBER_MEDIUM;
-            baselineY = cy - 30;
+            baselineY = cy - 35;
         }
         dc.drawText(cx, baselineY, font, displayStr, Graphics.TEXT_JUSTIFY_CENTER);
 
@@ -151,7 +151,7 @@ class RegattaView extends WatchUi.View {
 
         var displayStr = timer.getDisplayString();
         var font = Graphics.FONT_NUMBER_MEDIUM;
-        dc.drawText(cx, h / 2 - 35, font, displayStr, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, h / 2 - 45, font, displayStr, Graphics.TEXT_JUSTIFY_CENTER);
 
         if (_gpsRecorder != null && _gpsRecorder.isRecording()) {
             dc.fillCircle(cx, h - 65, 3);
