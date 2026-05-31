@@ -93,7 +93,7 @@ class SyncManager {
         );
     }
 
-    function onUploadResponse(responseCode as Lang.Number, data) as Void {
+    function onUploadResponse(responseCode as Lang.Number, data as Lang.Dictionary or Lang.String or Null) as Void {
         System.println("Upload response: " + responseCode);
 
         if (responseCode == 200 || responseCode == 201) {
@@ -169,7 +169,7 @@ class SyncManager {
         );
     }
 
-    function onJoinResponse(responseCode as Lang.Number, data) as Void {
+    function onJoinResponse(responseCode as Lang.Number, data as Lang.Dictionary or Lang.String or Null) as Void {
         System.println("Join response: " + responseCode);
 
         if (responseCode == 200 || responseCode == 201) {
