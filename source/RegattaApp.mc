@@ -63,6 +63,7 @@ class RegattaApp extends Application.AppBase {
     }
 
     function onUiTick() as Void {
+        _timerModel.tick();
         WatchUi.requestUpdate();
     }
 
