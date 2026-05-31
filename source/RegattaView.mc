@@ -1,14 +1,7 @@
 // RegattaView.mc — Main watch face UI, round 454×454 AMOLED
 //
-// Simple centered layout:
-//         AFTELLEN        (top area)
-//          05:00          (absolute center)
-//      5m   10m   15m     (below timer, idle only)
-//     ● GPS 32 pts        (GPS recording indicator)
-//      START / STOP       (bottom hint)
-//
-// Button hints are inline (bottom) — physical buttons on FR965:
-//   START/STOP = start/stop, UP = presets, DOWN = menu, BACK = reset
+// Round bezel cuts off ~45px on top/bottom. All Y coords
+// shifted up by ~30px vs previous version.
 
 using Toybox.WatchUi;
 using Toybox.Graphics;
@@ -23,12 +16,8 @@ class RegattaView extends WatchUi.View {
     hidden var _gpsCount = 0;
     hidden var _statusMessage = "";
 
-    function initialize() {
-        View.initialize();
-    }
-
-    function onLayout(dc) {
-    }
+    function initialize() { View.initialize(); }
+    function onLayout(dc) {}
 
     function onShow() {
         var app = Application.getApp();
@@ -52,7 +41,6 @@ class RegattaView extends WatchUi.View {
         var cx = w / 2;
         var cy = h / 2;
         var fs = Graphics.FONT_XTINY;
-
         var cp = 0x55FFFF;
         var cr = 0xFF3333;
         var cw = Graphics.COLOR_WHITE;
@@ -74,11 +62,11 @@ class RegattaView extends WatchUi.View {
         var isIdle = timer.isIdle();
         var isRunning = timer.isRunning();
 
-        // ─── Label ───────────────────────────────────────────────
+        // Label
         dc.setColor(cg, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, 50, fs, labelStr, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, 40, fs, labelStr, Graphics.TEXT_JUSTIFY_CENTER);
 
-        // ─── Timer (visually centered — drawText uses Y as baseline) ──
+        // Timer — baseline above center (digits extend upward)
         var tc = cw;
         if (timer.isCountingDown() && timer.getRemainingSeconds() <= 10 && isRunning) {
             tc = cr;
@@ -88,16 +76,16 @@ class RegattaView extends WatchUi.View {
         dc.setColor(tc, Graphics.COLOR_TRANSPARENT);
 
         var font = Graphics.FONT_NUMBER_THAI_HOT;
-        var baselineY = cy - 30;  // digits extend above baseline, so baseline goes higher
+        var baselineY = cy - 50;
         if (displayStr.length() > 5) {
             font = Graphics.FONT_NUMBER_MEDIUM;
-            baselineY = cy - 15;
+            baselineY = cy - 30;
         }
         dc.drawText(cx, baselineY, font, displayStr, Graphics.TEXT_JUSTIFY_CENTER);
 
-        // ─── Presets ─────────────────────────────────────────────
+        // Presets (idle only)
         if (isIdle) {
-            var pY = cy + 70;
+            var pY = cy + 50;
             var col = w / 3;
             dc.setColor(cg, Graphics.COLOR_TRANSPARENT);
             dc.drawText(col / 2, pY, fs, "5m", Graphics.TEXT_JUSTIFY_CENTER);
@@ -118,8 +106,8 @@ class RegattaView extends WatchUi.View {
             dc.drawText(sx, pY, fs, sl, Graphics.TEXT_JUSTIFY_CENTER);
         }
 
-        // ─── GPS recording indicator ──────────────────────────────
-        var gpsY = h - 65;
+        // GPS indicator
+        var gpsY = h - 85;
         if (_gpsRecorder != null && _gpsRecorder.isRecording()) {
             dc.setColor(cr, Graphics.COLOR_TRANSPARENT);
             dc.fillCircle(cx - 20, gpsY, 4);
@@ -128,15 +116,15 @@ class RegattaView extends WatchUi.View {
                         _gpsCount.format("%d") + " pts", Graphics.TEXT_JUSTIFY_LEFT);
         }
 
-        // ─── Bottom hints ─────────────────────────────────────────
-        var hintY = h - 30;
+        // Bottom hint
+        var hintY = h - 55;
         dc.setColor(cg, Graphics.COLOR_TRANSPARENT);
         var hint = "START";
         if (isRunning) { hint = "STOP"; }
         else if (!isIdle) { hint = "HERVAT"; }
         dc.drawText(cx, hintY, fs, hint, Graphics.TEXT_JUSTIFY_CENTER);
 
-        // ─── Overlay ─────────────────────────────────────────────
+        // Overlay
         if (_statusMessage.length() > 0) {
             dc.setColor(cb, cb);
             dc.fillRectangle(0, cy - 15, w, 30);
@@ -145,10 +133,7 @@ class RegattaView extends WatchUi.View {
         }
     }
 
-    // ─── Always-On Display (low-power mode) ──────────────────────
-    // Called ~1/sec when screen dims. 1-bit monochrome only
-    // (COLOR_WHITE / COLOR_BLACK). Keeps timer visible.
-
+    // ─── Always-On Display ─────────────────────────────────────
     function onPartialUpdate(dc) {
         var timer = _timerModel;
         if (timer == null || !timer.isRunning()) { return; }
@@ -158,23 +143,19 @@ class RegattaView extends WatchUi.View {
         var cx = w / 2;
         var fs = Graphics.FONT_XTINY;
 
-        // Black background
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
         dc.clear();
 
-        // Label
         var labelStr = timer.getLabel();
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, 50, fs, labelStr, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, 40, fs, labelStr, Graphics.TEXT_JUSTIFY_CENTER);
 
-        // Timer (large, centered)
         var displayStr = timer.getDisplayString();
-        var font = Graphics.FONT_NUMBER_MEDIUM;  // smaller font saves power
-        dc.drawText(cx, h / 2 - 15, font, displayStr, Graphics.TEXT_JUSTIFY_CENTER);
+        var font = Graphics.FONT_NUMBER_MEDIUM;
+        dc.drawText(cx, h / 2 - 35, font, displayStr, Graphics.TEXT_JUSTIFY_CENTER);
 
-        // GPS dot (if recording)
         if (_gpsRecorder != null && _gpsRecorder.isRecording()) {
-            dc.fillCircle(cx, h - 50, 3);
+            dc.fillCircle(cx, h - 65, 3);
         }
     }
 }
