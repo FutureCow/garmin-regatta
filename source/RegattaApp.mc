@@ -114,8 +114,8 @@ class RegattaApp extends Application.AppBase {
     // ─── GPS Callback ────────────────────────────────────────────────────
 
     function onGpsUpdate(pointCount) as Void {
-        if (_view != null && _view has :updateGps) {
-            _view.updateGps(pointCount);
+        if (_view != null) {
+            WatchUi.requestUpdate();
         }
     }
 
