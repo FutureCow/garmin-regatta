@@ -2,8 +2,8 @@
 //
 // Handles button presses:
 //   START/ENTER → Start/Stop timer + GPS
-//   UP          → Next preset (only when idle)
-//   DOWN        → Open menu (sync, settings, upload)
+//   UP          → Next preset (when idle)
+//   DOWN        → Previous preset (when idle)
 //   BACK        → Reset timer (when stopped)
 
 using Toybox.WatchUi;
@@ -12,12 +12,12 @@ using Toybox.Application;
 
 class RegattaDelegate extends WatchUi.BehaviorDelegate {
 
-    hidden var _menuCallback;
+    hidden var _backCallback;
     hidden var _selectCallback;
 
-    function initialize(menuCallback, selectCallback) {
+    function initialize(backCallback, selectCallback) {
         BehaviorDelegate.initialize();
-        _menuCallback = menuCallback;
+        _backCallback = backCallback;
         _selectCallback = selectCallback;
     }
 
@@ -27,7 +27,7 @@ class RegattaDelegate extends WatchUi.BehaviorDelegate {
         return true;
     }
 
-    // UP button — Cycle presets (when idle)
+    // UP button — Cycle presets forward (when idle)
     function onNextPage() {
         var app = Application.getApp();
         var timer = app.getTimerModel();
@@ -41,32 +41,37 @@ class RegattaDelegate extends WatchUi.BehaviorDelegate {
         return true;
     }
 
-    // DOWN button — Open menu
+    // DOWN button — Cycle presets backward (when idle)
     function onPreviousPage() {
-        _menuCallback.invoke();
+        var app = Application.getApp();
+        var timer = app.getTimerModel();
+
+        if (!timer.isIdle()) {
+            return false;
+        }
+
+        timer.prevPreset();
+        WatchUi.requestUpdate();
         return true;
     }
 
-    // BACK button — Exit (idle), Reset (paused), Block (running)
+    // BACK button — Reset (paused), Block (running), Exit (idle)
     function onBack() {
         var app = Application.getApp();
         var timer = app.getTimerModel();
 
         if (timer.isRunning()) {
-            // Running — block back (prevent accidental exit)
-            return true;
+            return true; // Block back during race
         }
 
         if (timer.isPaused()) {
-            // Stopped — reset timer and GPS
             timer.reset();
             app.getGpsRecorder().stop();
             WatchUi.requestUpdate();
             return true;
         }
 
-        // Idle — let system handle (exit app)
-        return false;
+        return false; // Idle — exit app
     }
 
     // Touch screen tap (for touch-enabled watches)

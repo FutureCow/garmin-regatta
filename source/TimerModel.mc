@@ -78,6 +78,18 @@ class TimerModel {
         _remainingSeconds = _presetSeconds;
     }
 
+    function prevPreset() {
+        if (_status != STATUS_IDLE) { return; }
+        if (_presetSeconds == PRESET_15) {
+            _presetSeconds = PRESET_10;
+        } else if (_presetSeconds == PRESET_10) {
+            _presetSeconds = PRESET_5;
+        } else {
+            _presetSeconds = PRESET_15;
+        }
+        _remainingSeconds = _presetSeconds;
+    }
+
     function getPresetSeconds() { return _presetSeconds; }
 
     // ─── Display ───────────────────────────────────────────────────────

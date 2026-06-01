@@ -16,25 +16,4 @@
     <string id="GpsSearching">GPS zoeken...</string>
     <string id="GpsNoSignal">GPS ✕</string>
     <string id="PointsFmt">%d pts</string>
-
-    <!-- Sync -->
-    <string id="Syncing">Sync...</string>
-    <string id="SyncDone">Sync ✓</string>
-    <string id="SyncFailed">Sync ✕</string>
-    <string id="NoWifi">Geen WiFi</string>
-    <string id="NotConfigured">Server niet ingesteld</string>
-
-    <!-- Settings -->
-    <string id="SettingsLabel">Instellingen</string>
-    <string id="ServerUrl">Server URL</string>
-    <string id="ServerUrlHint">https://regatta.fhettinga.nl</string>
-    <string id="AuthToken">Auth token</string>
-    <string id="AuthTokenHint">JWT token</string>
-    <string id="RaceCode">Deelnamecode</string>
-    <string id="RaceCodeHint">bijv. ABC123</string>
-
-    <!-- Menu -->
-    <string id="MenuSync">Nu syncen</string>
-    <string id="MenuSettings">Instellingen</string>
-    <string id="MenuUpload">Upload laatste track</string>
 </strings>
