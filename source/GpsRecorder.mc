@@ -40,7 +40,7 @@ class GpsRecorder {
             // Resume — session is still alive, just re-enable position
             _paused = false;
             _recording = true;
-            Position.enableLocationEvents(Position.LOCATION_CONTINUOUS, method(:onPosition));
+            Position.enableLocationEvents({:acquisitionType=>Position.LOCATION_CONTINUOUS}, method(:onPosition));
             _updateTimer = new Timer.Timer();
             _updateTimer.start(method(:onUpdateTimer), 5000, true);
             System.println("GPS resumed: " + _pointCount + " pts so far");
@@ -67,7 +67,7 @@ class GpsRecorder {
         _recording = true;
         _paused = false;
 
-        Position.enableLocationEvents(Position.LOCATION_CONTINUOUS, method(:onPosition));
+        Position.enableLocationEvents({:acquisitionType=>Position.LOCATION_CONTINUOUS}, method(:onPosition));
 
         _updateTimer = new Timer.Timer();
         _updateTimer.start(method(:onUpdateTimer), 5000, true);
@@ -80,7 +80,7 @@ class GpsRecorder {
     function pause() {
         if (!_recording) { return; }
 
-        Position.enableLocationEvents(Position.LOCATION_DISABLE, method(:onPosition));
+        Position.enableLocationEvents({:acquisitionType=>Position.LOCATION_DISABLE}, method(:onPosition));
 
         if (_updateTimer != null) {
             _updateTimer.stop();
@@ -120,7 +120,7 @@ class GpsRecorder {
 
         // Stop session first if still recording
         if (_recording) {
-            Position.enableLocationEvents(Position.LOCATION_DISABLE, method(:onPosition));
+            Position.enableLocationEvents({:acquisitionType=>Position.LOCATION_DISABLE}, method(:onPosition));
             if (_updateTimer != null) { _updateTimer.stop(); _updateTimer = null; }
             _recording = false;
         }

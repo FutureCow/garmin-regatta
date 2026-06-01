@@ -235,13 +235,15 @@ class ConfirmMenuDelegate extends WatchUi.Menu2InputDelegate {
         _callback = callback;
     }
 
-    function onSelect(item) as Void {
+    function onSelect(item) as Boolean {
         var id = item.getId();
         WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
         _callback.invoke(id);
+        return true;
     }
 
-    function onBack() as Void {
+    function onBack() as Boolean {
         WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
+        return true;
     }
 }
