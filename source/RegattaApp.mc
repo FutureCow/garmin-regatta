@@ -76,9 +76,6 @@ class RegattaApp extends Application.AppBase {
             _lastAlertSec = -1;
         }
 
-        if (_timerModel.isRunning() && !_timerModel.isCountingDown()) {
-            Attention.backlight(true);
-        }
         WatchUi.requestUpdate();
     }
 
