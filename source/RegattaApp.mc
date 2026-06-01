@@ -5,7 +5,8 @@
 // Connect via the phone — no WiFi, Bluetooth, or server config needed.
 // The regatta-server pulls sailing activities from Garmin Connect.
 //
-// When stopping, a confirm dialog lets the user choose:
+// When stopping, the timer pauses and GPS pauses. Press BACK to show
+// a confirm dialog letting the user choose:
 //   Opslaan        → save FIT, sync to Garmin Connect
 //   Verder opnemen → resume timer + GPS
 //   Verwijderen    → discard recording
@@ -75,7 +76,7 @@ class RegattaApp extends Application.AppBase {
             _lastAlertSec = -1;
         }
 
-        if (_timerModel.isRunning()) {
+        if (_timerModel.isRunning() && !_timerModel.isCountingDown()) {
             Attention.backlight(true);
         }
         WatchUi.requestUpdate();
@@ -128,13 +129,11 @@ class RegattaApp extends Application.AppBase {
         var gps = _gpsRecorder;
 
         if (timer.isRunning()) {
-            // Stop → pause timer + GPS, session blijft draaien, show confirm menu
+            // Stop → pause timer + GPS, session blijft draaien, geen menu
             timer.stop();
             gps.pause();
 
             WatchUi.requestUpdate();
-
-            _showConfirmMenu();
         } else if (timer.isPaused()) {
             // Resume from paused state
             timer.start();
@@ -211,13 +210,8 @@ class RegattaApp extends Application.AppBase {
         }
 
         if (timer.isPaused()) {
-            // Stopped/paused — discard and reset
-            gps.discardAndStop();
-            timer.reset();
-            if (_view != null && _view has :showMessage) {
-                _view.showMessage("Verwijderd");
-            }
-            WatchUi.requestUpdate();
+            // Stopped/paused — show confirm menu (Opslaan/Verder/Verwijderen)
+            _showConfirmMenu();
             return true;
         }
 
