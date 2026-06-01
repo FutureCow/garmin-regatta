@@ -13,6 +13,7 @@ class RegattaView extends WatchUi.View {
 
     hidden var _timerModel;
     hidden var _gpsRecorder;
+    hidden var _gpsCount = 0;
     hidden var _statusMessage = "";
 
     function initialize() { View.initialize(); }
@@ -25,6 +26,7 @@ class RegattaView extends WatchUi.View {
     }
 
     function updateGps(count) {
+        _gpsCount = count;
         WatchUi.requestUpdate();
     }
 
@@ -104,10 +106,11 @@ class RegattaView extends WatchUi.View {
             dc.drawText(sx, pY, fs, sl, Graphics.TEXT_JUSTIFY_CENTER);
         }
 
-        // GPS recording dot indicator only
+        // GPS recording dot: green = fix, red = recording no fix yet
         var gpsY = h - 85;
         if (_gpsRecorder != null && _gpsRecorder.isRecording()) {
-            dc.setColor(cr, Graphics.COLOR_TRANSPARENT);
+            var dotColor = (_gpsCount > 0) ? 0x00FF44 : cr;
+            dc.setColor(dotColor, Graphics.COLOR_TRANSPARENT);
             dc.fillCircle(cx - 5, gpsY, 5);
         } else if (_gpsRecorder != null && _gpsRecorder.isPaused()) {
             dc.setColor(cp, Graphics.COLOR_TRANSPARENT);

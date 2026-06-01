@@ -61,22 +61,30 @@ class RegattaDelegate extends WatchUi.BehaviorDelegate {
     }
 
     // Touch screen tap (for touch-enabled watches)
+    // Disabled during recording — water droplets trigger false taps.
+    // Use physical buttons to START/STOP during a race.
     function onTap(clickEvent) {
+        var app = Application.getApp();
+        var timer = app.getTimerModel();
+
+        // Block all touch during recording — water-druppels ≠ STOP
+        if (!timer.isIdle()) {
+            return true;
+        }
+
         var coords = clickEvent.getCoordinates();
         var height = System.getDeviceSettings().screenHeight;
         var width = System.getDeviceSettings().screenWidth;
         var cx = width / 2;
 
-        // Tap bottom half → start/stop
+        // Tap bottom half → start
         if (coords[1] > height * 0.6) {
             _selectCallback.invoke();
             return true;
         }
 
-        // Tap top area → cycle presets (when idle)
-        var app = Application.getApp();
-        var timer = app.getTimerModel();
-        if (timer.isIdle() && coords[1] < height * 0.4) {
+        // Tap top area → cycle presets
+        if (coords[1] < height * 0.4) {
             timer.nextPreset();
             WatchUi.requestUpdate();
             return true;
