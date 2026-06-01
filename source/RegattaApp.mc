@@ -31,6 +31,7 @@ class RegattaApp extends Application.AppBase {
     hidden var _gpsRecorder;
     hidden var _uiTimer;
     hidden var _lastAlertSec = -1;   // voorkomt dubbele alerts
+    hidden var _uiTickCount = 0;     // update frequentie tijdens racen
 
     function initialize() {
         AppBase.initialize();
@@ -76,7 +77,11 @@ class RegattaApp extends Application.AppBase {
             _lastAlertSec = -1;
         }
 
-        WatchUi.requestUpdate();
+        // Scherm-update: elke seconde tijdens countdown, elke 5s tijdens racen
+        _uiTickCount++;
+        if (_timerModel.isCountingDown() || _uiTickCount % 5 == 0) {
+            WatchUi.requestUpdate();
+        }
     }
 
     // ─── Countdown alerts (piep + tril) ────────────────────────────────
