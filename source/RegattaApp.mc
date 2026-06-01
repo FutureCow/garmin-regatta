@@ -22,7 +22,6 @@ using Toybox.System;
 using Toybox.WatchUi;
 using Toybox.Timer;
 using Toybox.Attention;
-using Toybox.Lang;
 
 class RegattaApp extends Application.AppBase {
 
@@ -236,15 +235,13 @@ class ConfirmMenuDelegate extends WatchUi.Menu2InputDelegate {
         _callback = callback;
     }
 
-    function onSelect(item) as Lang.Boolean {
+    function onSelect(item) {
         var id = item.getId();
         WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
         _callback.invoke(id);
-        return true;
     }
 
-    function onBack() as Lang.Boolean {
+    function onBack() {
         WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
-        return true;
     }
 }
