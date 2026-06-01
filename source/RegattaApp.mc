@@ -115,7 +115,7 @@ class RegattaApp extends Application.AppBase {
 
     // ─── GPS Callback ────────────────────────────────────────────────────
 
-    function onGpsUpdate(pointCount) {
+    function onGpsUpdate(pointCount) as Void {
         if (_view != null && _view has :updateGps) {
             _view.updateGps(pointCount);
         }
@@ -235,15 +235,13 @@ class ConfirmMenuDelegate extends WatchUi.Menu2InputDelegate {
         _callback = callback;
     }
 
-    function onSelect(item) {
+    function onSelect(item) as Void {
         var id = item.getId();
         WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
         _callback.invoke(id);
     }
 
-    function onBack() {
+    function onBack() as Void {
         WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
-        // User goes back to paused view — timer still paused, GPS still paused
-        // They can press START to resume or BACK to discard
     }
 }
