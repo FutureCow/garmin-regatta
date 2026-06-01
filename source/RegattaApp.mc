@@ -5,6 +5,11 @@
 // Connect via the phone — no WiFi, Bluetooth, or server config needed.
 // The regatta-server pulls sailing activities from Garmin Connect.
 //
+// When stopping, a confirm dialog lets the user choose:
+//   Opslaan        → save FIT, sync to Garmin Connect
+//   Verder opnemen → resume timer + GPS
+//   Verwijderen    → discard recording
+//
 // Architecture:
 //   RegattaApp (Application)
 //       ├── RegattaView (WatchUi.View)               — timer/GPS UI
@@ -40,7 +45,6 @@ class RegattaApp extends Application.AppBase {
         _view = new RegattaView();
         var delegate = new RegattaDelegate(method(:onBackPressed), method(:onSelect));
 
-        // Start 1-second UI refresh timer
         _uiTimer = new Timer.Timer();
         _uiTimer.start(method(:onUiTick), 1000, true);
 
@@ -72,49 +76,129 @@ class RegattaApp extends Application.AppBase {
         }
     }
 
-    // ─── Select (START button) — Start / Stop timer + GPS ────────────────
+    // ─── Select (START button) ──────────────────────────────────────────
 
     function onSelect() {
         var timer = _timerModel;
         var gps = _gpsRecorder;
 
         if (timer.isRunning()) {
-            // Stop: timer + GPS. FIT file is auto-saved by GpsRecorder.
-            // Garmin Connect will sync it automatically via phone.
+            // Stop → pause timer + GPS, session blijft draaien, show confirm menu
             timer.stop();
-            gps.stop();
+            gps.pause();
+
+            WatchUi.requestUpdate();
+
+            _showConfirmMenu();
+        } else if (timer.isPaused()) {
+            // Resume from paused state
+            timer.start();
+            gps.start();
+            WatchUi.requestUpdate();
+        } else {
+            // Idle → start
+            timer.start();
+            gps.start();
+            WatchUi.requestUpdate();
+        }
+    }
+
+    // ─── Confirm menu (na stoppen) ─────────────────────────────────────
+
+    hidden function _showConfirmMenu() {
+        var menu = new WatchUi.Menu2({:title=>"Opname stoppen"});
+
+        menu.addItem(
+            new WatchUi.MenuItem("Opslaan", "Bewaar track voor Garmin Connect", 1, {})
+        );
+        menu.addItem(
+            new WatchUi.MenuItem("Verder opnemen", "Hervat timer + GPS", 2, {})
+        );
+        menu.addItem(
+            new WatchUi.MenuItem("Verwijderen", "Gooi opname weg", 3, {})
+        );
+
+        WatchUi.pushView(
+            menu,
+            new ConfirmMenuDelegate(method(:onConfirmChoice)),
+            WatchUi.SLIDE_IMMEDIATE
+        );
+    }
+
+    function onConfirmChoice(choice) {
+        var timer = _timerModel;
+        var gps = _gpsRecorder;
+
+        if (choice == 1) {
+            // Opslaan
+            gps.saveAndStop();
             if (_view != null && _view has :showMessage) {
                 _view.showMessage("Opgeslagen");
             }
-        } else {
-            // Start: timer + GPS
+            WatchUi.requestUpdate();
+        } else if (choice == 2) {
+            // Verder opnemen
             timer.start();
             gps.start();
+            if (_view != null && _view has :showMessage) {
+                _view.showMessage("");
+            }
+            WatchUi.requestUpdate();
+        } else if (choice == 3) {
+            // Verwijderen
+            gps.discardAndStop();
+            timer.reset();
+            if (_view != null && _view has :showMessage) {
+                _view.showMessage("Verwijderd");
+            }
+            WatchUi.requestUpdate();
         }
-
-        WatchUi.requestUpdate();
     }
 
-    // ─── BACK button — Reset when stopped, block when running ────────────
+    // ─── BACK button ─────────────────────────────────────────────────────
 
     function onBackPressed() {
         var timer = _timerModel;
         var gps = _gpsRecorder;
 
         if (timer.isRunning()) {
-            // Running — block back to prevent accidental exit
-            return false;
+            return false; // Block back during race
         }
 
         if (timer.isPaused()) {
-            // Stopped — reset timer and GPS
+            // Stopped/paused — discard and reset
+            gps.discardAndStop();
             timer.reset();
-            gps.stop();
+            if (_view != null && _view has :showMessage) {
+                _view.showMessage("Verwijderd");
+            }
             WatchUi.requestUpdate();
             return true;
         }
 
-        // Idle — let system handle (exit app)
-        return true; // true = we handled it, but system exits for idle
+        return false; // Idle — exit app
+    }
+}
+
+// ─── Confirm Menu Delegate ────────────────────────────────────────────
+
+class ConfirmMenuDelegate extends WatchUi.Menu2InputDelegate {
+    hidden var _callback;
+
+    function initialize(callback) {
+        Menu2InputDelegate.initialize();
+        _callback = callback;
+    }
+
+    function onSelect(item) {
+        var id = item.getId();
+        WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
+        _callback.invoke(id);
+    }
+
+    function onBack() {
+        WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
+        // User goes back to paused view — timer still paused, GPS still paused
+        // They can press START to resume or BACK to discard
     }
 }

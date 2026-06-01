@@ -55,23 +55,9 @@ class RegattaDelegate extends WatchUi.BehaviorDelegate {
         return true;
     }
 
-    // BACK button — Reset (paused), Block (running), Exit (idle)
+    // BACK button — delegate to RegattaApp.onBackPressed()
     function onBack() {
-        var app = Application.getApp();
-        var timer = app.getTimerModel();
-
-        if (timer.isRunning()) {
-            return true; // Block back during race
-        }
-
-        if (timer.isPaused()) {
-            timer.reset();
-            app.getGpsRecorder().stop();
-            WatchUi.requestUpdate();
-            return true;
-        }
-
-        return false; // Idle — exit app
+        return _backCallback.invoke();
     }
 
     // Touch screen tap (for touch-enabled watches)

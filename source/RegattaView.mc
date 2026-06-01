@@ -114,6 +114,12 @@ class RegattaView extends WatchUi.View {
             dc.setColor(cw, Graphics.COLOR_TRANSPARENT);
             dc.drawText(cx + 5, gpsY, fs,
                         _gpsCount.format("%d") + " pts", Graphics.TEXT_JUSTIFY_LEFT);
+        } else if (_gpsRecorder != null && _gpsRecorder.isPaused()) {
+            dc.setColor(cp, Graphics.COLOR_TRANSPARENT);
+            dc.fillCircle(cx - 20, gpsY, 4);
+            dc.setColor(cw, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx + 5, gpsY, fs,
+                        _gpsCount.format("%d") + " pts", Graphics.TEXT_JUSTIFY_LEFT);
         }
 
         // Bottom hint
