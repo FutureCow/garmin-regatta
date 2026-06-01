@@ -82,6 +82,11 @@ class RegattaApp extends Application.AppBase {
         if (_timerModel.isCountingDown() || _uiTickCount % 5 == 0) {
             WatchUi.requestUpdate();
         }
+
+        // Backlight: elke 5s verversen tijdens countdown (scherm dimt anders uit)
+        if (_timerModel.isCountingDown() && _uiTickCount % 5 == 0) {
+            Attention.backlight(true);
+        }
     }
 
     // ─── Countdown alerts (piep + tril) ────────────────────────────────
