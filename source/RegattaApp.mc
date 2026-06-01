@@ -29,6 +29,7 @@ class RegattaApp extends Application.AppBase {
     hidden var _timerModel;
     hidden var _gpsRecorder;
     hidden var _uiTimer;
+    hidden var _lastAlertSec = -1;   // voorkomt dubbele alerts
 
     function initialize() {
         AppBase.initialize();
@@ -61,11 +62,55 @@ class RegattaApp extends Application.AppBase {
     }
 
     function onUiTick() as Void {
+        // Fire alerts BEFORE tick (display matches remaining value)
+        if (_timerModel.isCountingDown()) {
+            var remaining = _timerModel.getRemainingSeconds();
+            _fireCountdownAlert(remaining);
+        }
+
         _timerModel.tick();
+
+        // Reset alert tracking when countdown ends
+        if (!_timerModel.isCountingDown()) {
+            _lastAlertSec = -1;
+        }
+
         if (_timerModel.isRunning()) {
             Attention.backlight(true);
         }
         WatchUi.requestUpdate();
+    }
+
+    // ─── Countdown alerts (piep + tril) ────────────────────────────────
+
+    hidden function _fireCountdownAlert(remaining) {
+        if (remaining == _lastAlertSec) { return; }
+
+        var shouldAlert = false;
+
+        if (remaining <= 5 && remaining > 0) {
+            // Laatste 5 seconden: elke seconde
+            shouldAlert = true;
+        } else if (remaining <= 60 && remaining > 0 && remaining % 10 == 0) {
+            // Laatste minuut: elke 10 seconden
+            shouldAlert = true;
+        } else if (remaining <= 300 && remaining % 60 == 0) {
+            // Vanaf 5:00: elke minuut (5:00, 4:00, 3:00, 2:00, 1:00)
+            shouldAlert = true;
+        }
+
+        if (shouldAlert) {
+            _lastAlertSec = remaining;
+
+            // Korte piep
+            Attention.playTone(Attention.TONE_START);
+
+            // Korte vibratie
+            if (Attention has :vibrate) {
+                var vibe = [new Attention.VibeProfile(50, 150)];
+                Attention.vibrate(vibe);
+            }
+        }
     }
 
     // ─── GPS Callback ────────────────────────────────────────────────────
