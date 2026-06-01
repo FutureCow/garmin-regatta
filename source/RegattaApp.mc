@@ -77,14 +77,11 @@ class RegattaApp extends Application.AppBase {
             _lastAlertSec = -1;
         }
 
-        // Scherm-update: elke seconde tijdens countdown, elke 5s tijdens racen
         _uiTickCount++;
-        if (_timerModel.isCountingDown() || _uiTickCount % 5 == 0) {
-            WatchUi.requestUpdate();
-        }
+        WatchUi.requestUpdate();
 
-        // Backlight: elke 5s verversen tijdens countdown (scherm dimt anders uit)
-        if (_timerModel.isCountingDown() && _uiTickCount % 5 == 0) {
+        // Backlight: elke 5s verversen — voorkomt dimmen zonder IQ!
+        if (_uiTickCount % 5 == 0) {
             Attention.backlight(true);
         }
     }
