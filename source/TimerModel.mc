@@ -121,7 +121,9 @@ class TimerModel {
     function getLabel() {
         if (isCountingDown()) {
             return "AFTELLEN";
-        } else if (isRunning() && _remainingSeconds <= 0) {
+        }
+        // Race phase: running OR paused — zolang countdown voorbij is
+        if (_remainingSeconds <= 0 && (isRunning() || isPaused())) {
             return "RACE";
         }
         return "AFTELLEN";
