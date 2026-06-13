@@ -79,7 +79,7 @@ class RegattaDelegate extends WatchUi.BehaviorDelegate {
         var app = Application.getApp();
         var timer = app.getTimerModel();
 
-        // Block all touch during recording — water-druppels ≠ STOP
+        // Block all touch during countdown/running — water-druppels ≠ STOP
         if (!timer.isIdle()) {
             return true;
         }
@@ -102,6 +102,26 @@ class RegattaDelegate extends WatchUi.BehaviorDelegate {
             return true;
         }
 
+        return false;
+    }
+
+    // Swipe — blokkeren tijdens countdown/running
+    function onSwipe(swipeEvent) {
+        var app = Application.getApp();
+        var timer = app.getTimerModel();
+        if (!timer.isIdle()) {
+            return true;
+        }
+        return false;
+    }
+
+    // Hold — blokkeren tijdens countdown/running
+    function onHold(clickEvent) {
+        var app = Application.getApp();
+        var timer = app.getTimerModel();
+        if (!timer.isIdle()) {
+            return true;
+        }
         return false;
     }
 }
