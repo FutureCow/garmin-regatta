@@ -36,30 +36,36 @@ class RegattaDelegate extends WatchUi.BehaviorDelegate {
         return false;
     }
 
-    // UP button — Cycle presets forward (when idle)
+    // UP button — Cycle presets forward (idle) / +1 min (countdown)
     function onNextPage() {
         var app = Application.getApp();
         var timer = app.getTimerModel();
 
-        if (!timer.isIdle()) {
-            return true;  // Block swipe during recording
+        if (timer.isIdle()) {
+            timer.nextPreset();
+        } else if (timer.isCountingDown()) {
+            timer.adjustUp();
+        } else {
+            return true;  // Block during elapsed
         }
 
-        timer.nextPreset();
         WatchUi.requestUpdate();
         return true;
     }
 
-    // DOWN button — Cycle presets backward (when idle)
+    // DOWN button — Cycle presets backward (idle) / -1 min (countdown)
     function onPreviousPage() {
         var app = Application.getApp();
         var timer = app.getTimerModel();
 
-        if (!timer.isIdle()) {
-            return true;  // Block swipe during recording
+        if (timer.isIdle()) {
+            timer.prevPreset();
+        } else if (timer.isCountingDown()) {
+            timer.adjustDown();
+        } else {
+            return true;  // Block during elapsed
         }
 
-        timer.prevPreset();
         WatchUi.requestUpdate();
         return true;
     }

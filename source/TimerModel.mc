@@ -90,6 +90,24 @@ class TimerModel {
         _remainingSeconds = _presetSeconds;
     }
 
+    // ─── Timer adjustment (±1 min during countdown) ────────────────────
+
+    function adjustUp() {
+        if (_status == STATUS_RUNNING && isCountingDown()) {
+            _remainingSeconds += 60;
+        }
+    }
+
+    function adjustDown() {
+        if (_status == STATUS_RUNNING && isCountingDown()) {
+            if (_remainingSeconds > 60) {
+                _remainingSeconds -= 60;
+            } else {
+                _remainingSeconds = 0;
+            }
+        }
+    }
+
     function getPresetSeconds() { return _presetSeconds; }
 
     // ─── Display ───────────────────────────────────────────────────────
@@ -106,12 +124,12 @@ class TimerModel {
         if (isCountingDown()) {
             return formatTime(_remainingSeconds, true);
         } else if (isRunning()) {
-            return "+" + formatTime(_elapsedSeconds, false);
+            return formatTime(_elapsedSeconds, false);
         } else if (isPaused()) {
             if (_remainingSeconds > 0) {
                 return formatTime(_remainingSeconds, true);
             } else {
-                return "+" + formatTime(_elapsedSeconds, false);
+                return formatTime(_elapsedSeconds, false);
             }
         } else {
             return formatTime(_presetSeconds, false);
