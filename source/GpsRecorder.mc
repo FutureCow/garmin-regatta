@@ -144,7 +144,7 @@ class GpsRecorder {
 
         if (info has :lat && info has :lon) {
             var accuracy = info has :accuracy ? info.accuracy : null;
-            if (accuracy != null && accuracy > Position.QUALITY_USABLE) {
+            if (accuracy != null && accuracy < Position.QUALITY_USABLE) {
                 return;
             }
 
