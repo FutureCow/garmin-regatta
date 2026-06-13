@@ -76,12 +76,19 @@ class RegattaView extends WatchUi.View {
         dc.setColor(tc, Graphics.COLOR_TRANSPARENT);
 
         var font = Graphics.FONT_NUMBER_THAI_HOT;
-        var baselineY = cy - 60;
+        var baselineY = cy - 80;
         if (displayStr.length() > 5) {
             font = Graphics.FONT_NUMBER_MEDIUM;
-            baselineY = cy - 35;
+            baselineY = cy - 55;
         }
         dc.drawText(cx, baselineY, font, displayStr, Graphics.TEXT_JUSTIFY_CENTER);
+
+        // ─── Button labels during countdown ──────────────────────────────
+        if (isRunning && timer.isCountingDown()) {
+            dc.setColor(cg, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx - w / 2 + 25, cy - 30, fs, "-1", Graphics.TEXT_JUSTIFY_LEFT);
+            dc.drawText(cx - w / 2 + 25, cy + 10, fs, "+1", Graphics.TEXT_JUSTIFY_LEFT);
+        }
 
         // Presets (idle only) — compact, slightly higher
         if (isIdle) {
