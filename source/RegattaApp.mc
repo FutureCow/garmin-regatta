@@ -31,6 +31,7 @@ class RegattaApp extends Application.AppBase {
     hidden var _gpsRecorder;
     hidden var _uiTimer;
     hidden var _lastAlertSec = -1;   // voorkomt dubbele alerts
+    hidden var _touchBlocked = false;
 
     function initialize() {
         AppBase.initialize();
@@ -129,18 +130,40 @@ class RegattaApp extends Application.AppBase {
             // Stop → pause timer + GPS, session blijft draaien, geen menu
             timer.stop();
             gps.pause();
-
+            _unblockTouch();
             WatchUi.requestUpdate();
         } else if (timer.isPaused()) {
             // Resume from paused state
             timer.start();
             gps.start();
+            _blockTouch();
             WatchUi.requestUpdate();
         } else {
             // Idle → start
             timer.start();
             gps.start();
+            _blockTouch();
             WatchUi.requestUpdate();
+        }
+    }
+
+    // ─── Touch blokkering via view stack ─────────────────────────────────
+
+    hidden function _blockTouch() {
+        if (!_touchBlocked && _view != null) {
+            _touchBlocked = true;
+            WatchUi.pushView(
+                new TouchBlockerView(_view),
+                new TouchBlockerDelegate(),
+                WatchUi.SLIDE_NONE
+            );
+        }
+    }
+
+    hidden function _unblockTouch() {
+        if (_touchBlocked) {
+            _touchBlocked = false;
+            WatchUi.popView(WatchUi.SLIDE_NONE);
         }
     }
 
@@ -173,6 +196,7 @@ class RegattaApp extends Application.AppBase {
         if (choice == 1) {
             // Opslaan
             gps.saveAndStop();
+            _unblockTouch();
             if (_view != null && _view has :showMessage) {
                 _view.showMessage("Opgeslagen");
             }
@@ -181,6 +205,7 @@ class RegattaApp extends Application.AppBase {
             // Verder opnemen
             timer.start();
             gps.start();
+            _blockTouch();
             if (_view != null && _view has :showMessage) {
                 _view.showMessage("");
             }
@@ -189,6 +214,7 @@ class RegattaApp extends Application.AppBase {
             // Verwijderen
             gps.discardAndStop();
             timer.reset();
+            _unblockTouch();
             if (_view != null && _view has :showMessage) {
                 _view.showMessage("Verwijderd");
             }
