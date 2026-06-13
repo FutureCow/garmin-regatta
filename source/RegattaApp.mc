@@ -40,6 +40,15 @@ class RegattaApp extends Application.AppBase {
     function getTimerModel()  { return _timerModel; }
     function getGpsRecorder() { return _gpsRecorder; }
 
+    // Reset UI timer — called after adjustUp/adjustDown so the next
+    // tick always fires exactly 1 second later (consistent timing).
+    function resetUiTimer() {
+        if (_uiTimer != null) {
+            _uiTimer.stop();
+            _uiTimer.start(method(:onUiTick), 1000, true);
+        }
+    }
+
     // ─── App Lifecycle ────────────────────────────────────────────────
 
     function getInitialView() as [WatchUi.Views] or [WatchUi.Views, WatchUi.InputDelegates] {
