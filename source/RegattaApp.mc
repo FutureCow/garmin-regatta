@@ -202,18 +202,36 @@ class RegattaApp extends Application.AppBase {
         var gps = _gpsRecorder;
 
         if (timer.isRunning()) {
-            return false; // Block back during race
+            // Pause first, then show menu
+            timer.stop();
+            gps.pause();
         }
 
         if (timer.isPaused()) {
-            // Stopped/paused — show confirm menu (Opslaan/Verder/Verwijderen)
+            // Show confirm menu (Opslaan/Verder/Verwijderen)
             _showConfirmMenu();
             return true;
         }
 
         return false; // Idle — exit app
     }
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // ─── Confirm Menu Delegate ────────────────────────────────────────────
 
