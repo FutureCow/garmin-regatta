@@ -125,6 +125,13 @@ class RegattaView extends WatchUi.View {
         else if (!isIdle) { hint = "HERVAT"; }
         dc.drawText(cx, hintY, fs, hint, Graphics.TEXT_JUSTIFY_CENTER);
 
+        // +1/-1 hints bij knoppen (alleen tijdens countdown)
+        if (timer.isRunning() && timer.isCountingDown()) {
+            dc.setColor(0x55FFFF, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(30, cy - 20, Graphics.FONT_XTINY, "-1", Graphics.TEXT_JUSTIFY_LEFT);
+            dc.drawText(30, cy + 20, Graphics.FONT_XTINY, "+1", Graphics.TEXT_JUSTIFY_LEFT);
+        }
+
         // ─── Status message (above timer, not overlaying digits) ─────
         if (_statusMessage.length() > 0) {
             dc.setColor(cp, Graphics.COLOR_TRANSPARENT);
