@@ -76,10 +76,10 @@ class RegattaView extends WatchUi.View {
         dc.setColor(tc, Graphics.COLOR_TRANSPARENT);
 
         var font = Graphics.FONT_NUMBER_THAI_HOT;
-        var baselineY = cy - 60;
+        var baselineY = cy - 70;
         if (displayStr.length() > 5) {
             font = Graphics.FONT_NUMBER_MEDIUM;
-            baselineY = cy - 35;
+            baselineY = cy - 45;
         }
         dc.drawText(cx, baselineY, font, displayStr, Graphics.TEXT_JUSTIFY_CENTER);
 
