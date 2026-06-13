@@ -87,7 +87,7 @@ class RegattaView extends WatchUi.View {
         if (isRunning && timer.isCountingDown()) {
             dc.setColor(cg, Graphics.COLOR_TRANSPARENT);
             dc.drawText(cx - w / 2 + 5, cy - 20, fs, "+1", Graphics.TEXT_JUSTIFY_LEFT);
-            dc.drawText(cx - w / 2 + 5, cy + 100, fs, "-1", Graphics.TEXT_JUSTIFY_LEFT);
+            dc.drawText(cx - w / 2 + 30, cy + 100, fs, "-1", Graphics.TEXT_JUSTIFY_LEFT);
         }
 
         // Presets (idle only) — compact, slightly higher
