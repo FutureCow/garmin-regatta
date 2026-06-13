@@ -60,6 +60,29 @@ class TimerModel {
 
     // ─── Presets ───────────────────────────────────────────────────────
 
+    // +1 min (naar boven afronden) — werkt tijdens countdown
+    function adjustUp() {
+        if (_status != STATUS_RUNNING) { return; }
+        if (_remainingSeconds > 0) {
+            var secs = _remainingSeconds % 60;
+            _remainingSeconds = (secs != 0)
+                ? (_remainingSeconds / 60 + 1) * 60
+                : _remainingSeconds + 60;
+        }
+    }
+
+    // -1 min (naar beneden afronden) — werkt tijdens countdown
+    function adjustDown() {
+        if (_status != STATUS_RUNNING) { return; }
+        if (_remainingSeconds > 0) {
+            var secs = _remainingSeconds % 60;
+            _remainingSeconds = (secs != 0)
+                ? (_remainingSeconds / 60) * 60
+                : _remainingSeconds - 60;
+            if (_remainingSeconds < 0) { _remainingSeconds = 0; }
+        }
+    }
+
     function setPreset(seconds) {
         if (_status != STATUS_IDLE) { return; }
         _presetSeconds = seconds;
