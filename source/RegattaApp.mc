@@ -215,6 +215,7 @@ class RegattaApp extends Application.AppBase {
 
         return false; // Idle — exit app
     }
+}
 
 
 
