@@ -31,7 +31,6 @@ class RegattaApp extends Application.AppBase {
     hidden var _gpsRecorder;
     hidden var _uiTimer;
     hidden var _lastAlertSec = -1;   // voorkomt dubbele alerts
-
     function initialize() {
         AppBase.initialize();
         _timerModel = new TimerModel();

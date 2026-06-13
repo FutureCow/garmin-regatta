@@ -1,10 +1,14 @@
 // RegattaDelegate.mc — Input handling for Regatta watch app
 //
 // Handles button presses:
-//   START/ENTER → Start/Stop timer + GPS
+//   START/ENTER → Start/Stop timer + GPS (via onKey, NOT onSelect)
 //   UP          → Next preset (when idle)
 //   DOWN        → Previous preset (when idle)
 //   BACK        → Reset timer (when stopped)
+//
+// Touch is blocked during recording (water droplets trigger false taps).
+// onSelect() is REMOVED — on FR965 it fires on BOTH button AND touch,
+// which causes tap=pause. Instead we use onKey(KEY_ENTER) for the button.
 
 using Toybox.WatchUi;
 using Toybox.System;
@@ -21,10 +25,15 @@ class RegattaDelegate extends WatchUi.BehaviorDelegate {
         _selectCallback = selectCallback;
     }
 
-    // START/ENTER button — Start/Stop
-    function onSelect() {
-        _selectCallback.invoke();
-        return true;
+    // Physical ENTER button — Start/Stop
+    // We use onKey instead of onSelect because onSelect fires on BOTH
+    // button press AND touch on FR965, causing tap=pause during recording.
+    function onKey(keyEvent) {
+        if (keyEvent.getKey() == WatchUi.KEY_ENTER) {
+            _selectCallback.invoke();
+            return true;
+        }
+        return false;
     }
 
     // UP button — Cycle presets forward (when idle)
@@ -33,7 +42,7 @@ class RegattaDelegate extends WatchUi.BehaviorDelegate {
         var timer = app.getTimerModel();
 
         if (!timer.isIdle()) {
-            return false;
+            return true;  // Block swipe during recording
         }
 
         timer.nextPreset();
@@ -47,7 +56,7 @@ class RegattaDelegate extends WatchUi.BehaviorDelegate {
         var timer = app.getTimerModel();
 
         if (!timer.isIdle()) {
-            return false;
+            return true;  // Block swipe during recording
         }
 
         timer.prevPreset();
@@ -62,31 +71,37 @@ class RegattaDelegate extends WatchUi.BehaviorDelegate {
 
     // Touch screen tap (for touch-enabled watches)
     // Disabled during recording — water droplets trigger false taps.
-    // Use physical buttons to START/STOP during a race.
     function onTap(clickEvent) {
         var app = Application.getApp();
         var timer = app.getTimerModel();
 
-        // Block all touch during recording — water-druppels ≠ STOP
+        // Block ALL touch during recording
         if (!timer.isIdle()) {
             return true;
         }
 
-        var coords = clickEvent.getCoordinates();
-        var height = System.getDeviceSettings().screenHeight;
-        var width = System.getDeviceSettings().screenWidth;
-        var cx = width / 2;
+        // Allow touch when idle
+        return false;
+    }
 
-        // Tap bottom half → start
-        if (coords[1] > height * 0.6) {
-            _selectCallback.invoke();
+    // Block swipe during recording
+    function onSwipe(swipeEvent) {
+        var app = Application.getApp();
+        var timer = app.getTimerModel();
+
+        if (!timer.isIdle()) {
             return true;
         }
 
-        // Tap top area → cycle presets
-        if (coords[1] < height * 0.4) {
-            timer.nextPreset();
-            WatchUi.requestUpdate();
+        return false;
+    }
+
+    // Block hold during recording
+    function onHold(holdEvent) {
+        var app = Application.getApp();
+        var timer = app.getTimerModel();
+
+        if (!timer.isIdle()) {
             return true;
         }
 
