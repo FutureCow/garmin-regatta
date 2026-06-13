@@ -36,7 +36,7 @@ class RegattaDelegate extends WatchUi.BehaviorDelegate {
         return false;
     }
 
-    // UP button — Cycle presets forward (idle) / +1 min (countdown)
+    // UP button — Cycle presets forward (idle) / -1 min (countdown)
     function onNextPage() {
         var app = Application.getApp();
         var timer = app.getTimerModel();
@@ -44,7 +44,7 @@ class RegattaDelegate extends WatchUi.BehaviorDelegate {
         if (timer.isIdle()) {
             timer.nextPreset();
         } else if (timer.isCountingDown()) {
-            timer.adjustUp();
+            timer.adjustDown();
         } else {
             return true;  // Block during elapsed
         }
@@ -53,7 +53,7 @@ class RegattaDelegate extends WatchUi.BehaviorDelegate {
         return true;
     }
 
-    // DOWN button — Cycle presets backward (idle) / -1 min (countdown)
+    // DOWN button — Cycle presets backward (idle) / +1 min (countdown)
     function onPreviousPage() {
         var app = Application.getApp();
         var timer = app.getTimerModel();
@@ -61,7 +61,7 @@ class RegattaDelegate extends WatchUi.BehaviorDelegate {
         if (timer.isIdle()) {
             timer.prevPreset();
         } else if (timer.isCountingDown()) {
-            timer.adjustDown();
+            timer.adjustUp();
         } else {
             return true;  // Block during elapsed
         }
