@@ -91,18 +91,29 @@ class TimerModel {
     }
 
     // ─── Timer adjustment (±1 min during countdown) ────────────────────
+    // +1 min → round UP to next whole minute (4:35 → 5:00)
+    // -1 min → round DOWN to previous whole minute (4:35 → 4:00)
 
     function adjustUp() {
         if (_status == STATUS_RUNNING && isCountingDown()) {
-            _remainingSeconds += 60;
+            var secs = _remainingSeconds % 60;
+            if (secs > 0) {
+                _remainingSeconds += (60 - secs);  // round up to next minute
+            } else {
+                _remainingSeconds += 60;  // already on minute boundary
+            }
         }
     }
 
     function adjustDown() {
         if (_status == STATUS_RUNNING && isCountingDown()) {
-            if (_remainingSeconds > 60) {
-                _remainingSeconds -= 60;
+            var secs = _remainingSeconds % 60;
+            if (secs > 0) {
+                _remainingSeconds -= secs;  // round down to current minute
             } else {
+                _remainingSeconds -= 60;  // already on minute boundary
+            }
+            if (_remainingSeconds < 0) {
                 _remainingSeconds = 0;
             }
         }
