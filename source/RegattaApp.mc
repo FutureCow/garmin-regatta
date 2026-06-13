@@ -163,7 +163,7 @@ class RegattaApp extends Application.AppBase {
     hidden function _unblockTouch() {
         if (_touchBlocked) {
             _touchBlocked = false;
-            WatchUi.popView();
+            WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
         }
     }
 
