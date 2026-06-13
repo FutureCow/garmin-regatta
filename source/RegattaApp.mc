@@ -155,7 +155,7 @@ class RegattaApp extends Application.AppBase {
             WatchUi.pushView(
                 new TouchBlockerView(_view),
                 new TouchBlockerDelegate(),
-                WatchUi.SLIDE_BLANK
+                WatchUi.SLIDE_IMMEDIATE
             );
         }
     }
@@ -163,7 +163,7 @@ class RegattaApp extends Application.AppBase {
     hidden function _unblockTouch() {
         if (_touchBlocked) {
             _touchBlocked = false;
-            WatchUi.popView(WatchUi.SLIDE_BLANK);
+            WatchUi.popView();
         }
     }
 
