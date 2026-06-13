@@ -27,13 +27,13 @@ class RegattaDelegate extends WatchUi.BehaviorDelegate {
         return true;
     }
 
-    // UP button — +1 min (tijdens countdown) / volgende preset (idle)
+    // UP button — -1 min (tijdens countdown) / volgende preset (idle)
     function onNextPage() {
         var app = Application.getApp();
         var timer = app.getTimerModel();
 
         if (timer.isRunning() && timer.isCountingDown()) {
-            timer.adjustUp();
+            timer.adjustDown();
             WatchUi.requestUpdate();
             return true;
         }
@@ -47,13 +47,13 @@ class RegattaDelegate extends WatchUi.BehaviorDelegate {
         return true;
     }
 
-    // DOWN button — -1 min (tijdens countdown) / vorige preset (idle)
+    // DOWN button — +1 min (tijdens countdown) / vorige preset (idle)
     function onPreviousPage() {
         var app = Application.getApp();
         var timer = app.getTimerModel();
 
         if (timer.isRunning() && timer.isCountingDown()) {
-            timer.adjustDown();
+            timer.adjustUp();
             WatchUi.requestUpdate();
             return true;
         }
