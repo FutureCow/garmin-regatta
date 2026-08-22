@@ -1,19 +1,5 @@
 <strings>
+    <!-- Alleen AppName wordt gebruikt (manifest: @Strings.AppName).
+         Alle UI-labels staan bewust hardcoded in de .mc-bestanden. -->
     <string id="AppName">Regatta Timer</string>
-
-    <!-- Timer -->
-    <string id="TimerLabel">AFTELLEN</string>
-    <string id="RaceLabel">RACE</string>
-    <string id="StartLabel">START</string>
-    <string id="StopLabel">STOP</string>
-    <string id="ResetLabel">Reset</string>
-    <string id="Preset5">5m</string>
-    <string id="Preset10">10m</string>
-    <string id="Preset15">15m</string>
-
-    <!-- GPS -->
-    <string id="GpsRecording">GPS ●</string>
-    <string id="GpsSearching">GPS zoeken...</string>
-    <string id="GpsNoSignal">GPS ✕</string>
-    <string id="PointsFmt">%d pts</string>
 </strings>

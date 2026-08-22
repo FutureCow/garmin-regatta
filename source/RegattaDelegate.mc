@@ -2,9 +2,12 @@
 //
 // Handles button presses:
 //   START/ENTER → Start/Stop timer + GPS (via onKey, NOT onSelect)
-//   UP          → Next preset (when idle)
-//   DOWN        → Previous preset (when idle)
-//   BACK        → Reset timer (when stopped)
+//   UP          → Vorige preset (idle) / +1 min (tijdens aftellen)
+//   DOWN        → Volgende preset (idle) / -1 min (tijdens aftellen)
+//   BACK        → Bevestigingsmenu (Opslaan / Verder opnemen / Verwijderen)
+//
+// Let op: Garmin mapt de UP-knop op onPreviousPage() en de DOWN-knop op
+// onNextPage() — dus niet zoals de functienamen doen vermoeden.
 //
 // Touch is blocked during recording (water droplets trigger false taps).
 // onSelect() is REMOVED — on FR965 it fires on BOTH button AND touch,
@@ -36,7 +39,7 @@ class RegattaDelegate extends WatchUi.BehaviorDelegate {
         return false;
     }
 
-    // UP button — Cycle presets forward (idle) / -1 min (countdown)
+    // DOWN-knop (onNextPage) — Volgende preset (idle) / -1 min (aftellen)
     function onNextPage() {
         var app = Application.getApp();
         var timer = app.getTimerModel();
@@ -54,7 +57,7 @@ class RegattaDelegate extends WatchUi.BehaviorDelegate {
         return true;
     }
 
-    // DOWN button — Cycle presets backward (idle) / +1 min (countdown)
+    // UP-knop (onPreviousPage) — Vorige preset (idle) / +1 min (aftellen)
     function onPreviousPage() {
         var app = Application.getApp();
         var timer = app.getTimerModel();

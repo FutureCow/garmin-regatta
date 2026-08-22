@@ -9,10 +9,11 @@ class TimerModel {
     static const PRESET_10 = 600;
     static const PRESET_15 = 900;
 
+    // Geen PAUSED-toestand: de timer loopt van START tot Opslaan of
+    // Verwijderen onafgebroken door. Zie de kop van RegattaApp.mc waarom.
     enum Status {
         STATUS_IDLE,
-        STATUS_RUNNING,
-        STATUS_PAUSED
+        STATUS_RUNNING
     }
 
     hidden var _status = STATUS_IDLE;
@@ -29,15 +30,9 @@ class TimerModel {
     function start() {
         if (_status == STATUS_RUNNING) { return; }
 
-        if (_status == STATUS_IDLE) {
-            _remainingSeconds = _presetSeconds;
-            _elapsedSeconds = 0;
-        }
+        _remainingSeconds = _presetSeconds;
+        _elapsedSeconds = 0;
         _status = STATUS_RUNNING;
-    }
-
-    function stop() {
-        _status = STATUS_PAUSED;
     }
 
     function reset() {
@@ -124,7 +119,6 @@ class TimerModel {
     // ─── Display ───────────────────────────────────────────────────────
 
     function isRunning()    { return _status == STATUS_RUNNING; }
-    function isPaused()     { return _status == STATUS_PAUSED; }
     function isIdle()       { return _status == STATUS_IDLE; }
     function isCountingDown() { return isRunning() && _remainingSeconds > 0; }
 
@@ -136,23 +130,12 @@ class TimerModel {
             return formatTime(_remainingSeconds, true);
         } else if (isRunning()) {
             return formatTime(_elapsedSeconds, false);
-        } else if (isPaused()) {
-            if (_remainingSeconds > 0) {
-                return formatTime(_remainingSeconds, true);
-            } else {
-                return formatTime(_elapsedSeconds, false);
-            }
-        } else {
-            return formatTime(_presetSeconds, false);
         }
+        return formatTime(_presetSeconds, false);
     }
 
     function getLabel() {
-        if (isCountingDown()) {
-            return "AFTELLEN";
-        }
-        // Race phase: running OR paused — zolang countdown voorbij is
-        if (_remainingSeconds <= 0 && (isRunning() || isPaused())) {
+        if (isRunning() && _remainingSeconds <= 0) {
             return "RACE";
         }
         return "AFTELLEN";

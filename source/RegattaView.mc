@@ -119,49 +119,18 @@ class RegattaView extends WatchUi.View {
             var dotColor = (_gpsCount > 0) ? 0x00FF44 : cr;
             dc.setColor(dotColor, Graphics.COLOR_TRANSPARENT);
             dc.fillCircle(cx - 5, gpsY, 5);
-        } else if (_gpsRecorder != null && _gpsRecorder.isPaused()) {
-            dc.setColor(cp, Graphics.COLOR_TRANSPARENT);
-            dc.fillCircle(cx - 5, gpsY, 5);
         }
 
         // Bottom hint
         var hintY = h - 55;
         dc.setColor(cg, Graphics.COLOR_TRANSPARENT);
-        var hint = "START";
-        if (isRunning) { hint = "STOP"; }
-        else if (!isIdle) { hint = "HERVAT"; }
+        var hint = isIdle ? "START" : "BACK = MENU";
         dc.drawText(cx, hintY, fs, hint, Graphics.TEXT_JUSTIFY_CENTER);
 
         // ─── Status message (above timer, not overlaying digits) ─────
         if (_statusMessage.length() > 0) {
             dc.setColor(cp, Graphics.COLOR_TRANSPARENT);
             dc.drawText(cx, 80, fs, _statusMessage, Graphics.TEXT_JUSTIFY_CENTER);
-        }
-    }
-
-    // ─── Always-On Display ─────────────────────────────────────
-    function onPartialUpdate(dc) {
-        var timer = _timerModel;
-        if (timer == null || !timer.isRunning()) { return; }
-
-        var w = dc.getWidth();
-        var h = dc.getHeight();
-        var cx = w / 2;
-        var fs = Graphics.FONT_XTINY;
-
-        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
-        dc.clear();
-
-        var labelStr = timer.getLabel();
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, 40, fs, labelStr, Graphics.TEXT_JUSTIFY_CENTER);
-
-        var displayStr = timer.getDisplayString();
-        var font = Graphics.FONT_NUMBER_MEDIUM;
-        dc.drawText(cx, h / 2 - 45, font, displayStr, Graphics.TEXT_JUSTIFY_CENTER);
-
-        if (_gpsRecorder != null && _gpsRecorder.isRecording()) {
-            dc.fillCircle(cx, h - 65, 3);
         }
     }
 }

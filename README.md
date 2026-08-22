@@ -1,58 +1,74 @@
 # Regatta Garmin IQ
 
-Garmin watch app voor zeilwedstrijden — timer met GPS-recorder die direct synchroniseert met de [regatta-server](https://github.com/FutureCow/regatta-server) via WiFi.
+Garmin watch-app voor zeilwedstrijden — afteltimer met GPS-recorder die de race
+wegschrijft als FIT-activiteit met `SPORT_SAILING`. De activiteit synchroniseert
+via Garmin Connect; de [regatta-server](https://github.com/Regatta-Companion/regatta-server)
+haalt zeilactiviteiten daar vandaan op.
 
-Ondersteunde watches: **Fenix 6/7/8, Quatix 6/7, Forerunner 255/265/955/965, Epix 2, Enduro 2/3, MARQ 2, Tactix 7**
+**Ondersteund toestel:** Forerunner 965 (`fr965`)
 
 ## Features
 
-- ⏱️ **Afteltimer** — 5, 10 of 15 minuten preset, schakelt automatisch naar opgaande racetijd
-- 📡 **GPS Recorder** — start automatisch als de timer start, slaat trackpoints op 1 Hz
-- 📤 **Opslaan & later uploaden** — GPS-track wordt lokaal opgeslagen bij stoppen; upload later via WiFi (menu → Upload)
-- 🔗 **Race koppelen** — voer een deelnamecode in en tracks worden automatisch gekoppeld
-- ⚙️ **Instelbaar via Garmin IQ** — server URL, auth token en deelnamecode
+- ⏱️ **Afteltimer** — preset 5, 10 of 15 minuten, schakelt bij 0 automatisch over naar oplopende racetijd
+- 🔔 **Startsignalen** — piep + trilling op 5:00/4:00/3:00/2:00/1:00, elke 10 s in de laatste minuut, elke seconde in de laatste 5
+- ➕ **±1 minuut** — timer bijstellen tijdens het aftellen (uitstel of vervroeging van de start), afgerond op hele minuten
+- 📍 **GPS-recorder** — start en stopt mee met de timer, schrijft een FIT-activiteit met `SPORT_SAILING`
+- 🔒 **Geen pauzeknop** — de opname loopt onafgebroken door; START doet tijdens het varen niets, zodat je hem niet per ongeluk kunt indrukken
+- 🚫 **Touch geblokkeerd tijdens opname** — spatwater veroorzaakt anders valse taps
 
 ## Hoe het werkt
 
 ```
-┌──────────┐    opslaan    ┌──────────────┐    WiFi     ┌──────────────┐
-│  Watch   │ ───────────→  │  Storage     │ ─────────→  │ Regatta      │
-│ (Garmin) │   lokaal      │  (horloge)   │   later     │ server       │
-└──────────┘               └──────────────┘             └──────────────┘
+┌──────────┐   FIT (SPORT_SAILING)   ┌─────────────────┐   garmin_sync.py   ┌──────────────┐
+│  Watch   │ ──────────────────────► │ Garmin Connect  │ ─────────────────► │ Regatta      │
+│ (fr965)  │      via de telefoon    │                 │   (op de server)   │ server       │
+└──────────┘                         └─────────────────┘                    └──────────────┘
 ```
 
-1. Je stopt de timer op je watch → GPS-track wordt **lokaal opgeslagen** op het horloge
-2. Geen netwerkactie op het water — geen BLE, geen IQ-dialoog
-3. Terug aan de kant: open het menu (DOWN) → **Upload** → track wordt via WiFi verstuurd
-4. Klaar — de track staat op de server
+1. Je stopt de opname op het horloge en kiest **Opslaan** → de FIT-activiteit wordt op het horloge bewaard
+2. Het horloge synchroniseert de activiteit zelf naar Garmin Connect, zoals elke andere activiteit
+3. De regatta-server haalt zeilactiviteiten uit Garmin Connect op via `garmin_sync.py` en koppelt ze aan de wedstrijd
 
-> **Let op:** upload werkt alleen als de watch met WiFi verbonden is. WiFi staat standaard uit op Garmin — zet het aan via Instellingen → Connectiviteit → Wi-Fi. Upload later via het menu wanneer je weer WiFi hebt.
-
-## Installatie
-
-1. Download de `.iq` file van de [releases pagina](https://github.com/FutureCow/garmin-regatta/releases)
-2. Kopieer naar `GARMIN/APPS/` op je watch via USB, of
-3. Installeer via de [Garmin Connect IQ Store](https://apps.garmin.com/) (na publicatie)
-
-## Configuratie
-
-Open **Garmin Connect IQ** op je telefoon → Mijn apparaat → Regatta → Instellingen:
-
-| Instelling | Uitleg |
-|---|---|
-| **Server URL** | URL van de regatta-server, bijv. `https://regatta.fhettinga.nl` |
-| **Auth token** | JWT token van je account (te vinden in de regatta-screen app → Instellingen) |
-| **Deelnamecode** | Code van de wedstrijd/reeks waaraan je meedoet |
-| **Auto-sync** | Automatisch uploaden na stoppen (aan/uit) |
+> De app heeft **geen** eigen serverconfiguratie, WiFi-upload of Bluetooth-verbinding.
+> Dat is er in juni 2026 uit gehaald (commit `bf89cff`); koppelen met een wedstrijd
+> gebeurt aan de serverkant. Verbind je Garmin-account op de webinterface van de
+> regatta-server onder **Garmin**.
 
 ## Bediening
 
-| Knop | Actie |
+| Knop | Idle | Tijdens aftellen | Tijdens race |
+|---|---|---|---|
+| **START** | Timer + GPS starten | — | — |
+| **UP** | Vorige preset (15m → 10m → 5m) | **+1 min** (afronden omhoog) | — |
+| **DOWN** | Volgende preset (5m → 10m → 15m) | **−1 min** (afronden omlaag) | — |
+| **BACK** | App verlaten | Menu openen | Menu openen |
+
+**Er is geen pauze.** Zodra de timer loopt doet START niets meer — op het water
+druk je die knop te makkelijk per ongeluk in. Stoppen gaat altijd via BACK, en
+dat stopt of pauzeert op zichzelf niets: timer en GPS lopen gewoon door zolang
+het menu open staat.
+
+| Keuze | Effect |
 |---|---|
-| **START** | Timer starten/stoppen + GPS start/stopt mee |
-| **UP** | Preset wisselen (5m → 10m → 15m) — alleen als timer stil staat |
-| **DOWN** | Menu openen (handmatig syncen, uploaden, instellingen) |
-| **BACK** | Reset timer (alleen als timer gestopt is) |
+| **Verder opnemen** | Sluit het menu, er verandert niets — staat bovenaan en is de gemarkeerde keuze |
+| **Opslaan** | FIT-activiteit bewaren en terug naar het startscherm |
+| **Verwijderen** | Opname weggooien en terug naar het startscherm |
+
+Omdat *Verder opnemen* bovenaan staat, zijn zowel BACK-BACK als BACK-START
+onschadelijk: je vaart gewoon door.
+
+## Scherm
+
+- Bovenaan het label **AFTELLEN** of **RACE**
+- Grote cijfers: **wit** op het startscherm en tijdens het aftellen, **rood** in de laatste 10 seconden voor de start, **cyaan** tijdens de race
+- Stip onderin: **groen** = GPS-punten binnen, **rood** = opname loopt maar nog geen bruikbare fix
+- Presets 5m / 10m / 15m alleen zichtbaar als de timer stilstaat
+- Onderin staat de hint `START` op het startscherm en `BACK = MENU` tijdens het varen
+
+## Installatie
+
+1. Download `regatta.iq` (of `regatta-fr965.prg`) van de [releases-pagina](https://github.com/Regatta-Companion/garmin-regatta/releases)
+2. Kopieer het `.prg`-bestand via USB naar `GARMIN/APPS/` op je horloge
 
 ## Build from source
 
@@ -68,28 +84,26 @@ monkeyc -f monkey.jungle -o bin/regatta.iq -y developer_key.der
 
 ## CI/CD
 
-Bij elke push naar `master` bouwt GitHub Actions automatisch een `.iq` file:
-
-- Checkout → Download Garmin SDK → Build → Upload artifact
-- De `.iq` file is te downloaden vanaf de Actions pagina
+[`.github/workflows/build.yml`](.github/workflows/build.yml) bouwt bij elke push naar
+`master` of `main` automatisch een `.iq` en een `.prg` als artifact. Bij een tag `v*`
+worden die aan de GitHub-release gehangen. De workflow heeft de repo-secret
+`GARMIN_DEVELOPER_KEY_B64` nodig (de developer key, base64-encoded).
 
 ## Projectstructuur
 
 ```
 garmin-regatta/
-├── manifest.xml              # App manifest (app ID, permissies, producten)
+├── manifest.xml              # App manifest (app ID, permissies, fr965)
 ├── monkey.jungle             # Jungle build config
 ├── source/
-│   ├── RegattaApp.mc         # Application entry point, lifecycle
-│   ├── RegattaView.mc        # Main UI view (timer, GPS status)
-│   ├── RegattaDelegate.mc    # Button/touch input handling
-│   ├── TimerModel.mc         # Countdown + elapsed timer logic
-│   ├── GpsRecorder.mc        # GPS recording + FIT + GPX export
-│   └── SyncManager.mc        # WiFi direct HTTP sync
+│   ├── RegattaApp.mc         # Entry point, lifecycle, alerts, racemenu
+│   ├── RegattaView.mc        # UI (timer, presets, GPS-stip) — rond 454×454
+│   ├── RegattaDelegate.mc    # Knop- en touch-afhandeling
+│   ├── TimerModel.mc         # Aftellen + oplopende racetijd (IDLE / RUNNING)
+│   └── GpsRecorder.mc        # FIT-opname met SPORT_SAILING
 └── resources/
-    ├── strings.xml           # Vertaalbare strings (EN/NL)
-    ├── settings.xml          # App instellingen (server URL, token)
+    ├── strings.xml           # Alleen AppName — UI-labels staan in de .mc-bestanden
     └── drawables/
         ├── drawables.xml     # Icon mapping
-        └── launcher.png      # App icoon (40×40)
+        └── launcher.png      # App-icoon
 ```

@@ -5,11 +5,14 @@
 // Connect via the phone — no WiFi, Bluetooth, or server config needed.
 // The regatta-server pulls sailing activities from Garmin Connect.
 //
-// When stopping, the timer pauses and GPS pauses. Press BACK to show
-// a confirm dialog letting the user choose:
-//   Opslaan        → save FIT, sync to Garmin Connect
-//   Verder opnemen → resume timer + GPS
-//   Verwijderen    → discard recording
+// Er is geen pauze. START werkt alleen vanuit het startscherm; zodra de
+// timer loopt doet de knop niets meer, want op het water druk je hem te
+// makkelijk per ongeluk in. BACK opent een menu terwijl timer en GPS
+// gewoon doorlopen:
+//   Verder opnemen → sluit het menu, er verandert niets (bovenaan, dus
+//                    BACK-BACK en BACK-START zijn allebei onschadelijk)
+//   Opslaan        → FIT bewaren, sync naar Garmin Connect, terug naar start
+//   Verwijderen    → opname weggooien, terug naar start
 //
 // Architecture:
 //   RegattaApp (Application)
@@ -130,38 +133,30 @@ class RegattaApp extends Application.AppBase {
     // ─── Select (START button) ──────────────────────────────────────────
 
     function onSelect() {
-        var timer = _timerModel;
-        var gps = _gpsRecorder;
+        // Alleen vanuit het startscherm. Tijdens aftellen of race doet
+        // START bewust niets — stoppen gaat via BACK → menu.
+        if (!_timerModel.isIdle()) { return; }
 
-        if (timer.isRunning()) {
-            // Stop → pause timer + GPS, session blijft draaien, geen menu
-            timer.stop();
-            gps.pause();
-
-            WatchUi.requestUpdate();
-        } else if (timer.isPaused()) {
-            // Resume from paused state
-            timer.start();
-            gps.start();
-            WatchUi.requestUpdate();
-        } else {
-            // Idle → start
-            timer.start();
-            gps.start();
-            WatchUi.requestUpdate();
+        if (_view != null && _view has :showMessage) {
+            _view.showMessage("");   // melding van de vorige opname wissen
         }
+        _timerModel.start();
+        _gpsRecorder.start();
+        WatchUi.requestUpdate();
     }
 
     // ─── Confirm menu (na stoppen) ─────────────────────────────────────
 
+    // "Verder opnemen" staat bewust bovenaan: dat is de gemarkeerde keuze,
+    // zodat een per ongeluk ingedrukte BACK gevolgd door START niets doet.
     hidden function _showConfirmMenu() {
-        var menu = new WatchUi.Menu2({:title=>"Opname stoppen"});
+        var menu = new WatchUi.Menu2({:title=>"Race"});
 
         menu.addItem(
-            new WatchUi.MenuItem("Opslaan", "Bewaar track voor Garmin Connect", 1, {})
+            new WatchUi.MenuItem("Verder opnemen", "Sluit dit menu", 1, {})
         );
         menu.addItem(
-            new WatchUi.MenuItem("Verder opnemen", "Hervat timer + GPS", 2, {})
+            new WatchUi.MenuItem("Opslaan", "Bewaar track voor Garmin Connect", 2, {})
         );
         menu.addItem(
             new WatchUi.MenuItem("Verwijderen", "Gooi opname weg", 3, {})
@@ -175,28 +170,22 @@ class RegattaApp extends Application.AppBase {
     }
 
     function onConfirmChoice(choice) {
-        var timer = _timerModel;
-        var gps = _gpsRecorder;
-
         if (choice == 1) {
-            // Opslaan
-            gps.saveAndStop();
+            // Verder opnemen — er is niets gepauzeerd, dus alleen sluiten
+            WatchUi.requestUpdate();
+        } else if (choice == 2) {
+            // Opslaan — terug naar IDLE, anders erft de volgende race de
+            // klok van deze race terwijl de recorder wel opnieuw begint.
+            _gpsRecorder.saveAndStop();
+            _timerModel.reset();
             if (_view != null && _view has :showMessage) {
                 _view.showMessage("Opgeslagen");
             }
             WatchUi.requestUpdate();
-        } else if (choice == 2) {
-            // Verder opnemen
-            timer.start();
-            gps.start();
-            if (_view != null && _view has :showMessage) {
-                _view.showMessage("");
-            }
-            WatchUi.requestUpdate();
         } else if (choice == 3) {
             // Verwijderen
-            gps.discardAndStop();
-            timer.reset();
+            _gpsRecorder.discardAndStop();
+            _timerModel.reset();
             if (_view != null && _view has :showMessage) {
                 _view.showMessage("Verwijderd");
             }
@@ -207,40 +196,16 @@ class RegattaApp extends Application.AppBase {
     // ─── BACK button ─────────────────────────────────────────────────────
 
     function onBackPressed() {
-        var timer = _timerModel;
-        var gps = _gpsRecorder;
-
-        if (timer.isRunning()) {
-            // Pause first, then show menu
-            timer.stop();
-            gps.pause();
+        if (_timerModel.isIdle()) {
+            return false;   // startscherm — laat het systeem de app sluiten
         }
 
-        if (timer.isPaused()) {
-            // Show confirm menu (Opslaan/Verder/Verwijderen)
-            _showConfirmMenu();
-            return true;
-        }
-
-        return false; // Idle — exit app
+        // Timer en GPS lopen door terwijl het menu open staat: BACK stopt
+        // of pauzeert niets, het opent alleen een keuze.
+        _showConfirmMenu();
+        return true;
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 // ─── Confirm Menu Delegate ────────────────────────────────────────────
