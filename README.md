@@ -13,6 +13,7 @@ haalt zeilactiviteiten daar vandaan op.
 - 🔔 **Startsignalen** — piep + trilling op 5:00/4:00/3:00/2:00/1:00, elke 10 s in de laatste minuut, elke seconde in de laatste 5
 - ➕ **±1 minuut** — timer bijstellen tijdens het aftellen (uitstel of vervroeging van de start), afgerond op hele minuten
 - 📍 **GPS-recorder** — start en stopt mee met de timer, schrijft een FIT-activiteit met `SPORT_SAILING`
+- 🧭 **Infoscherm tijdens de race** — snelheid in knopen, koers over grond en de klok naast de racetijd
 - 🔒 **Geen pauzeknop** — de opname loopt onafgebroken door; START doet tijdens het varen niets, zodat je hem niet per ongeluk kunt indrukken
 - 🚫 **Touch geblokkeerd tijdens opname** — spatwater veroorzaakt anders valse taps
 
@@ -39,8 +40,8 @@ haalt zeilactiviteiten daar vandaan op.
 | Knop | Idle | Tijdens aftellen | Tijdens race |
 |---|---|---|---|
 | **START** | Timer + GPS starten | — | — |
-| **UP** | Vorige preset (15m → 10m → 5m) | **+1 min** (afronden omhoog) | — |
-| **DOWN** | Volgende preset (5m → 10m → 15m) | **−1 min** (afronden omlaag) | — |
+| **UP** | Vorige preset (15m → 10m → 5m) | **+1 min** (afronden omhoog) | Blader van scherm |
+| **DOWN** | Volgende preset (5m → 10m → 15m) | **−1 min** (afronden omlaag) | Blader van scherm |
 | **BACK** | App verlaten | Menu openen | Menu openen |
 
 **Er is geen pauze.** Zodra de timer loopt doet START niets meer — op het water
@@ -57,13 +58,42 @@ het menu open staat.
 Omdat *Verder opnemen* bovenaan staat, zijn zowel BACK-BACK als BACK-START
 onschadelijk: je vaart gewoon door.
 
-## Scherm
+## Schermen
+
+Vóór de start is er één scherm: de aftelklok, met UP en DOWN op ±1 minuut.
+Zodra de aftelling op nul staat en de race loopt, bladeren UP en DOWN tussen
+twee schermen. Twee stipjes onderin laten zien op welk scherm je zit; die
+verschijnen alleen tijdens de race, want alleen dan valt er te bladeren.
+
+```
+   ┌─────────────────────┐      ┌─────────────────────┐
+   │        RACE         │      │        RACE         │
+   │                     │      │                     │
+   │       12:34         │  ⇄   │       12:34         │
+   │                     │      │                     │
+   │                     │      │  6.4 kn      247°   │
+   │                     │      │  KNOPEN      KOERS  │
+   │         ●           │      │                     │
+   │     BACK = MENU     │      │     ● 18:42         │
+   │        ● ○          │      │     BACK = MENU     │
+   └─────────────────────┘      │        ○ ●          │
+        racetijd                └─────────────────────┘
+                                    racetijd + info
+```
+
+Gemeenschappelijk op beide schermen:
 
 - Bovenaan het label **AFTELLEN** of **RACE**
 - Grote cijfers: **wit** op het startscherm en tijdens het aftellen, **rood** in de laatste 10 seconden voor de start, **cyaan** tijdens de race
-- Stip onderin: **groen** = GPS-punten binnen, **rood** = opname loopt maar nog geen bruikbare fix
+- Stip: **groen** = GPS-punten binnen, **rood** = opname loopt maar nog geen bruikbare fix
+- Onderin de hint `START` op het startscherm en `BACK = MENU` tijdens het varen
 - Presets 5m / 10m / 15m alleen zichtbaar als de timer stilstaat
-- Onderin staat de hint `START` op het startscherm en `BACK = MENU` tijdens het varen
+
+Over de waarden op het infoscherm:
+
+- **Knopen** is het gemiddelde over de laatste 5 seconden, niet de rauwe meting. Instantane GPS-snelheid springt op het water te veel heen en weer om af te lezen.
+- **Koers** is koers over grond uit `Activity.Info.track`, dus de uit GPS-beweging afgeleide richting — niet de kompaskoers. Onder 0,5 knoop staat er `---`, omdat de waarde dan pure ruis is.
+- **Klok** volgt de 12/24-uursinstelling van het horloge.
 
 ## Installatie
 
@@ -97,10 +127,11 @@ garmin-regatta/
 ├── monkey.jungle             # Jungle build config
 ├── source/
 │   ├── RegattaApp.mc         # Entry point, lifecycle, alerts, racemenu
-│   ├── RegattaView.mc        # UI (timer, presets, GPS-stip) — rond 454×454
+│   ├── RegattaView.mc        # Beide schermen — rond 454×454
 │   ├── RegattaDelegate.mc    # Knop- en touch-afhandeling
 │   ├── TimerModel.mc         # Aftellen + oplopende racetijd (IDLE / RUNNING)
-│   └── GpsRecorder.mc        # FIT-opname met SPORT_SAILING
+│   ├── GpsRecorder.mc        # FIT-opname met SPORT_SAILING
+│   └── Telemetry.mc          # Gedempte snelheid + koers over grond
 └── resources/
     ├── strings.xml           # Alleen AppName — UI-labels staan in de .mc-bestanden
     └── drawables/

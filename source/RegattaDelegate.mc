@@ -2,8 +2,8 @@
 //
 // Handles button presses:
 //   START/ENTER → Start/Stop timer + GPS (via onKey, NOT onSelect)
-//   UP          → Vorige preset (idle) / +1 min (tijdens aftellen)
-//   DOWN        → Volgende preset (idle) / -1 min (tijdens aftellen)
+//   UP          → Vorige preset (idle) / +1 min (aftellen) / blader (race)
+//   DOWN        → Volgende preset (idle) / -1 min (aftellen) / blader (race)
 //   BACK        → Bevestigingsmenu (Opslaan / Verder opnemen / Verwijderen)
 //
 // Let op: Garmin mapt de UP-knop op onPreviousPage() en de DOWN-knop op
@@ -50,7 +50,8 @@ class RegattaDelegate extends WatchUi.BehaviorDelegate {
             timer.adjustDown();
             app.resetUiTimer();
         } else {
-            return true;  // Block during elapsed
+            app.togglePage();   // race: blader naar het andere scherm
+            return true;
         }
 
         WatchUi.requestUpdate();
@@ -68,7 +69,8 @@ class RegattaDelegate extends WatchUi.BehaviorDelegate {
             timer.adjustUp();
             app.resetUiTimer();
         } else {
-            return true;  // Block during elapsed
+            app.togglePage();   // race: blader naar het andere scherm
+            return true;
         }
 
         WatchUi.requestUpdate();

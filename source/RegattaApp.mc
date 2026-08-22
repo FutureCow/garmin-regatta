@@ -19,7 +19,8 @@
 //       ├── RegattaView (WatchUi.View)               — timer/GPS UI
 //       ├── RegattaDelegate (WatchUi.BehaviorDelegate) — button input
 //       ├── TimerModel                                — countdown + elapsed
-//       └── GpsRecorder                               — FIT file GPS recording
+//       ├── GpsRecorder                               — FIT file GPS recording
+//       └── Telemetry                                 — snelheid/koers voor pagina 1
 
 using Toybox.Application;
 using Toybox.System;
@@ -32,16 +33,32 @@ class RegattaApp extends Application.AppBase {
     hidden var _view;
     hidden var _timerModel;
     hidden var _gpsRecorder;
+    hidden var _telemetry;
     hidden var _uiTimer;
     hidden var _lastAlertSec = -1;   // voorkomt dubbele alerts
+    hidden var _page = 0;            // 0 = timer, 1 = info (alleen in de race)
+
     function initialize() {
         AppBase.initialize();
         _timerModel = new TimerModel();
         _gpsRecorder = new GpsRecorder(method(:onGpsUpdate));
+        _telemetry = new Telemetry();
     }
 
     function getTimerModel()  { return _timerModel; }
     function getGpsRecorder() { return _gpsRecorder; }
+    function getTelemetry()   { return _telemetry; }
+
+    // ─── Paginastand ──────────────────────────────────────────────────
+    // Bladeren kan alleen tijdens de race; RegattaView negeert de stand
+    // in elke andere fase, dus hier hoeft niets afgeschermd te worden.
+
+    function getPage() { return _page; }
+
+    function togglePage() {
+        _page = (_page == 0) ? 1 : 0;
+        WatchUi.requestUpdate();
+    }
 
     // Reset UI timer — called after adjustUp/adjustDown so the next
     // tick always fires exactly 1 second later (consistent timing).
@@ -81,6 +98,10 @@ class RegattaApp extends Application.AppBase {
         }
 
         _timerModel.tick();
+
+        if (_timerModel.isRunning()) {
+            _telemetry.tick();
+        }
 
         // Reset alert tracking when countdown ends
         if (!_timerModel.isCountingDown()) {
@@ -140,6 +161,8 @@ class RegattaApp extends Application.AppBase {
         if (_view != null && _view has :showMessage) {
             _view.showMessage("");   // melding van de vorige opname wissen
         }
+        _page = 0;
+        _telemetry.reset();
         _timerModel.start();
         _gpsRecorder.start();
         WatchUi.requestUpdate();
@@ -178,6 +201,7 @@ class RegattaApp extends Application.AppBase {
             // klok van deze race terwijl de recorder wel opnieuw begint.
             _gpsRecorder.saveAndStop();
             _timerModel.reset();
+            _page = 0;
             if (_view != null && _view has :showMessage) {
                 _view.showMessage("Opgeslagen");
             }
@@ -186,6 +210,7 @@ class RegattaApp extends Application.AppBase {
             // Verwijderen
             _gpsRecorder.discardAndStop();
             _timerModel.reset();
+            _page = 0;
             if (_view != null && _view has :showMessage) {
                 _view.showMessage("Verwijderd");
             }
