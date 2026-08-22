@@ -61,6 +61,18 @@ class GpsRecorder {
         System.println("GPS recording started (SPORT_SAILING FIT)");
     }
 
+    // ─── Lapmarker ──────────────────────────────────────────────────────
+
+    // Markeert het startschot in het FIT-bestand, zodat de aanloop naar de
+    // start te onderscheiden is van de race zelf. Geeft terug of het lukte.
+    function markLap() {
+        if (!_recording || _session == null) { return false; }
+
+        var ok = _session.addLap();
+        System.println("Lapmarker op het startschot: " + ok);
+        return ok;
+    }
+
     // ─── GPS en update-timer uitzetten ──────────────────────────────────
 
     hidden function _stopSensors() {

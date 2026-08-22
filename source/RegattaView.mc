@@ -191,10 +191,22 @@ class RegattaView extends WatchUi.View {
 
     // ─── Gedeelde onderdelen ────────────────────────────────────────────
 
+    // Grijs = timer loopt, opname begint pas op 5:00
+    // Rood  = opname loopt, nog geen bruikbare fix
+    // Groen = punten binnen
     hidden function _drawGpsDot(dc, x, y) {
-        if (_gpsRecorder == null || !_gpsRecorder.isRecording()) { return; }
+        if (_gpsRecorder == null) { return; }
 
-        dc.setColor((_gpsCount > 0) ? C_FIX : C_ALERT, Graphics.COLOR_TRANSPARENT);
+        var color;
+        if (_gpsRecorder.isRecording()) {
+            color = (_gpsCount > 0) ? C_FIX : C_ALERT;
+        } else if (_timerModel != null && _timerModel.isRunning()) {
+            color = C_DIM;
+        } else {
+            return;   // startscherm: geen stip
+        }
+
+        dc.setColor(color, Graphics.COLOR_TRANSPARENT);
         dc.fillCircle(x, y, 5);
     }
 

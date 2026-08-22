@@ -30,12 +30,18 @@ using Toybox.Attention;
 
 class RegattaApp extends Application.AppBase {
 
+    // De opname begint pas in de laatste 5 minuten voor de start. Eerder
+    // levert alleen aanlooprommel op, en 5 minuten is ruim genoeg voor een
+    // GPS-fix (die heeft doorgaans onder de minuut nodig).
+    static const GPS_START_SECONDS = 300;
+
     hidden var _view;
     hidden var _timerModel;
     hidden var _gpsRecorder;
     hidden var _telemetry;
     hidden var _uiTimer;
     hidden var _lastAlertSec = -1;   // voorkomt dubbele alerts
+    hidden var _lapMarked = false;   // precies één lapmarker per race
     hidden var _page = 0;            // 0 = timer, 1 = info (alleen in de race)
 
     function initialize() {
@@ -99,7 +105,12 @@ class RegattaApp extends Application.AppBase {
 
         _timerModel.tick();
 
-        if (_timerModel.isRunning()) {
+        _maybeStartRecording();
+        _maybeMarkStartLap();
+
+        // Zonder sessie levert Activity.getActivityInfo() niets zinnigs op,
+        // dus pas meten zodra er ook echt opgenomen wordt.
+        if (_gpsRecorder.isRecording()) {
             _telemetry.tick();
         }
 
@@ -143,6 +154,31 @@ class RegattaApp extends Application.AppBase {
         }
     }
 
+    // ─── Opnamevenster en lapmarker ──────────────────────────────────────
+
+    // Start de opname zodra de resttijd onder de drempel zakt. Idempotent,
+    // dus veilig om elke tik aan te roepen. Eenmaal begonnen stoppen we
+    // niet meer: ga je met +1 weer boven 5:00, dan loopt de opname door,
+    // anders knip je een gat in je eigen track.
+    hidden function _maybeStartRecording() {
+        if (!_timerModel.isRunning()) { return; }
+        if (_gpsRecorder.isRecording()) { return; }
+        if (_timerModel.getRemainingSeconds() > GPS_START_SECONDS) { return; }
+
+        _gpsRecorder.start();
+    }
+
+    // Zet één lapmarker op het startschot, zodat in het FIT-bestand te zien
+    // is waar de aanloop ophoudt en de race begint.
+    hidden function _maybeMarkStartLap() {
+        if (_lapMarked) { return; }
+        if (!_timerModel.isRunning()) { return; }
+        if (_timerModel.getRemainingSeconds() > 0) { return; }
+
+        _gpsRecorder.markLap();
+        _lapMarked = true;   // ook na een mislukking niet elke seconde opnieuw
+    }
+
     // ─── GPS Callback ────────────────────────────────────────────────────
 
     function onGpsUpdate(pointCount) as Void {
@@ -162,9 +198,10 @@ class RegattaApp extends Application.AppBase {
             _view.showMessage("");   // melding van de vorige opname wissen
         }
         _page = 0;
+        _lapMarked = false;
         _telemetry.reset();
         _timerModel.start();
-        _gpsRecorder.start();
+        _maybeStartRecording();   // begint meteen als de preset al 5:00 is
         WatchUi.requestUpdate();
     }
 
@@ -199,11 +236,15 @@ class RegattaApp extends Application.AppBase {
         } else if (choice == 2) {
             // Opslaan — terug naar IDLE, anders erft de volgende race de
             // klok van deze race terwijl de recorder wel opnieuw begint.
+            // Vóór 5:00 is er nog geen sessie. Dan valt er niets te bewaren
+            // en zou "Opgeslagen" suggereren dat er een track op het horloge
+            // staat die er niet is.
+            var recorded = _gpsRecorder.isRecording();
             _gpsRecorder.saveAndStop();
             _timerModel.reset();
             _page = 0;
             if (_view != null && _view has :showMessage) {
-                _view.showMessage("Opgeslagen");
+                _view.showMessage(recorded ? "Opgeslagen" : "Niets opgenomen");
             }
             WatchUi.requestUpdate();
         } else if (choice == 3) {

@@ -12,7 +12,8 @@ haalt zeilactiviteiten daar vandaan op.
 - ⏱️ **Afteltimer** — preset 5, 10 of 15 minuten, schakelt bij 0 automatisch over naar oplopende racetijd
 - 🔔 **Startsignalen** — piep + trilling op 5:00/4:00/3:00/2:00/1:00, elke 10 s in de laatste minuut, elke seconde in de laatste 5
 - ➕ **±1 minuut** — timer bijstellen tijdens het aftellen (uitstel of vervroeging van de start), afgerond op hele minuten
-- 📍 **GPS-recorder** — start en stopt mee met de timer, schrijft een FIT-activiteit met `SPORT_SAILING`
+- 📍 **GPS-recorder** — begint op **5:00** voor de start, schrijft een FIT-activiteit met `SPORT_SAILING`
+- 🚩 **Lapmarker op het startschot** — de aanloop is in het FIT-bestand te onderscheiden van de race
 - 🧭 **Infoscherm tijdens de race** — snelheid in knopen, koers over grond en de klok naast de racetijd
 - 🔒 **Geen pauzeknop** — de opname loopt onafgebroken door; START doet tijdens het varen niets, zodat je hem niet per ongeluk kunt indrukken
 - 🚫 **Touch geblokkeerd tijdens opname** — spatwater veroorzaakt anders valse taps
@@ -34,6 +35,34 @@ haalt zeilactiviteiten daar vandaan op.
 > Dat is er in juni 2026 uit gehaald (commit `bf89cff`); koppelen met een wedstrijd
 > gebeurt aan de serverkant. Verbind je Garmin-account op de webinterface van de
 > regatta-server onder **Garmin**.
+
+## Wanneer wordt er opgenomen
+
+De opname begint niet bij het indrukken van START, maar pas als de aftelklok
+**5:00** aanwijst. Zet je 15 minuten, dan blijven de eerste 10 minuten dus
+buiten de track. Vijf minuten is ruim genoeg voor een GPS-fix — die heeft
+doorgaans onder de minuut nodig — en scheelt een hoop aanlooprommel in het
+bestand. Bij preset 5m begint de opname meteen.
+
+Op het moment dat de aftelling nul passeert zet de app een **lapmarker** in
+het FIT-bestand. Daarmee is achteraf te zien waar de aanloop ophoudt en de
+race begint.
+
+```
+  START           opname begint      startschot              Opslaan
+    │                   │                 │                     │
+    ▼                   ▼                 ▼                     ▼
+  15:00 ─────────────  5:00 ──────────── 0:00 ───────────────  einde
+    └── niet opgenomen ─┘└─ opgenomen ────┴─── opgenomen ────────┘
+                                       lapmarker
+```
+
+Eenmaal begonnen stopt de opname niet meer. Ga je met **+1** weer boven de
+5:00 uit, dan loopt hij door — anders zou er een gat in je track vallen.
+
+> Druk je op **Opslaan** terwijl de klok nog boven de 5:00 staat, dan is er
+> niets opgenomen. Het scherm meldt dan `Niets opgenomen` in plaats van
+> `Opgeslagen`.
 
 ## Bediening
 
@@ -85,7 +114,7 @@ Gemeenschappelijk op beide schermen:
 
 - Bovenaan het label **AFTELLEN** of **RACE**
 - Grote cijfers: **wit** op het startscherm en tijdens het aftellen, **rood** in de laatste 10 seconden voor de start, **cyaan** tijdens de race
-- Stip: **groen** = GPS-punten binnen, **rood** = opname loopt maar nog geen bruikbare fix
+- Stip: **grijs** = timer loopt, opname begint pas op 5:00 · **rood** = opname loopt maar nog geen bruikbare fix · **groen** = punten binnen
 - Onderin de hint `START` op het startscherm en `BACK = MENU` tijdens het varen
 - Presets 5m / 10m / 15m alleen zichtbaar als de timer stilstaat
 
