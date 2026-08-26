@@ -130,7 +130,7 @@ Over de waarden op het infoscherm:
 - **Knopen** is het gemiddelde over de laatste 5 seconden, niet de rauwe meting. Instantane GPS-snelheid springt op het water te veel heen en weer om af te lezen.
 - **Koers** is koers over grond uit `Activity.Info.track`, dus de uit GPS-beweging afgeleide richting — niet de kompaskoers. Onder 0,5 knoop staat er `---`, omdat de waarde dan pure ruis is. Er staat geen `°` achter: de `FONT_NUMBER_*`-familie is "number only" en kan dat teken niet tekenen.
 - **Klok** volgt de 12/24-uursinstelling van het horloge.
-- De cijfers worden zo groot mogelijk getekend. `_fitValueFont()` probeert de fonts van groot naar klein en pakt het eerste dat nog naast elkaar past; de posities komen uit `dc.getFontHeight()`, zodat een label nooit door een waarde heen kan lopen.
+- De cijfers worden zo groot mogelijk getekend. `_fitValueFont()` probeert de fonts van groot naar klein en pakt het eerste dat zowel naast elkaar past als binnen de beschikbare hoogte. Alle posities komen uit `dc.getFontHeight()` — ook de onderkant van de grote racetijd, waar het waardenblok onder moet blijven. Er wordt dus nergens een fonthoogte geschat.
 
 ## Installatie
 

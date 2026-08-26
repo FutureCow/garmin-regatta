@@ -109,9 +109,15 @@ class RegattaView extends WatchUi.View {
         }
         dc.drawText(cx, baselineY, font, displayStr, Graphics.TEXT_JUSTIFY_CENTER);
 
+        // Onderkant van de grote cijfers méten, niet schatten. FONT_NUMBER_
+        // THAI_HOT loopt op de FR965 flink lager door dan een schatting op
+        // basis van cy suggereert; daardoor viel het waardenblok er eerst
+        // bovenop.
+        var timerBottom = baselineY + dc.getFontHeight(font);
+
         // ─── Pagina-inhoud ───────────────────────────────────────────────
         if (page == 1) {
-            _drawInfoPage(dc, w, h);
+            _drawInfoPage(dc, w, h, timerBottom);
         } else {
             _drawTimerPage(dc, w, h, isIdle, counting, timer);
         }
@@ -181,12 +187,12 @@ class RegattaView extends WatchUi.View {
     // Posities komen uit de gemeten fonthoogte, niet uit vaste offsets.
     // Met vaste offsets liep het label door de waarde heen zodra het font
     // hoger uitviel dan aangenomen.
-    hidden function _drawInfoPage(dc, w, h) {
+    hidden function _drawInfoPage(dc, w, h, timerBottom) {
         var cx = w / 2;
-        var cy = h / 2;
         var fs = Graphics.FONT_XTINY;
         var col = 88;                   // horizontale afstand tot het midden
         var gap = 6;                    // tussen waarde en label
+        var clear = 12;                 // lucht onder de grote cijfers
 
         var knots  = (_telemetry != null) ? _telemetry.getSpeedKnots()    : null;
         var course = (_telemetry != null) ? _telemetry.getCourseDegrees() : null;
@@ -196,15 +202,16 @@ class RegattaView extends WatchUi.View {
         var speedStr  = (knots  != null) ? knots.format("%.1f") : "--";
         var courseStr = (course != null) ? course.toNumber().format("%03d") : "---";
 
-        var valueFont = _fitValueFont(dc, speedStr, courseStr, col);
+        // De band loopt van onder de grote cijfers tot boven de paginastippen
+        var bandTop = timerBottom + clear;
+        var bandBottom = h - 45;
+        var lH = dc.getFontHeight(fs);
+
+        var valueFont = _fitValueFont(
+            dc, speedStr, courseStr, col, (bandBottom - bandTop) - gap - lH);
 
         var vH = dc.getFontHeight(valueFont);
-        var lH = dc.getFontHeight(fs);
         var blockH = vH + gap + lH;
-
-        // Blok centreren tussen de grote cijfers en de paginastippen
-        var bandTop = cy + 20;
-        var bandBottom = h - 45;
         var blockTop = bandTop + ((bandBottom - bandTop) - blockH) / 2;
 
         var valueY = blockTop + vH / 2;
@@ -220,12 +227,15 @@ class RegattaView extends WatchUi.View {
         dc.drawText(cx + col, labelY, fs, "KOERS",  mid);
     }
 
-    // Pakt het grootste font waarbij de twee waarden elkaar nog niet raken.
-    hidden function _fitValueFont(dc, a, b, col) {
+    // Pakt het grootste font dat zowel naast elkaar past als binnen de
+    // beschikbare hoogte. Zonder de hoogtecheck zou een fors font het blok
+    // over de paginastippen heen duwen.
+    hidden function _fitValueFont(dc, a, b, col, maxHeight) {
         var fonts = [
             Graphics.FONT_NUMBER_MEDIUM,
             Graphics.FONT_NUMBER_MILD,
-            Graphics.FONT_MEDIUM
+            Graphics.FONT_MEDIUM,
+            Graphics.FONT_SMALL
         ];
         var maxWidth = 2 * (col - 8);
 
@@ -233,7 +243,10 @@ class RegattaView extends WatchUi.View {
             var wa = dc.getTextWidthInPixels(a, fonts[i]);
             var wb = dc.getTextWidthInPixels(b, fonts[i]);
             var widest = (wa > wb) ? wa : wb;
-            if (widest <= maxWidth) { return fonts[i]; }
+
+            if (widest <= maxWidth && dc.getFontHeight(fonts[i]) <= maxHeight) {
+                return fonts[i];
+            }
         }
         return fonts[fonts.size() - 1];
     }
