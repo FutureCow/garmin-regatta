@@ -203,7 +203,7 @@ class RegattaView extends WatchUi.View {
         var courseStr = (course != null) ? course.toNumber().format("%03d") : "---";
 
         var lH = dc.getFontHeight(fs);
-        var valueFont = _fitValueFont(dc, speedStr, courseStr, col);
+        var valueFont = _fitValueFont(dc, col);
         var vH = dc.getFontHeight(valueFont);
         var labelY = bottom - lH / 2;
         var valueY = bottom - lH - gap - vH / 2;
@@ -218,25 +218,28 @@ class RegattaView extends WatchUi.View {
         dc.drawText(cx + col, labelY, fs, "KOERS",  mid);
     }
 
-    // Selecteert op BREEDTE alleen. getTextWidthInPixels() meet de echte
-    // glyphs en is betrouwbaar; getFontHeight() geeft de regelhoogte van het
-    // font en valt bij een FONT_NUMBER_* veel hoger uit dan de cijfers zelf.
-    // Een hoogtecheck op dat getal degradeerde het font onnodig — dat was de
-    // bug in v1.12.2 en v1.12.3. Nodig is die check ook niet: het blok hangt
-    // vanaf onderen en kan dus niet over de paginastippen zakken.
+    // De maat mag NIET van de actuele waarden afhangen. Met "---" als koers
+    // is de tekst smal; een breedtecheck koos dan het hogere
+    // FONT_NUMBER_MEDIUM, dat omhoog door de racetijd heen liep. Zodra er
+    // "191" stond viel dat font af en sprong de weergave terug naar MILD.
+    // Daarom meten we de bréédst mogelijke inhoud in plaats van de huidige,
+    // zodat de cijfers even groot blijven terwijl je vaart.
     //
-    // FONT_NUMBER_HOT ontbreekt bewust: op de FR965 botst die met de racetijd.
-    hidden function _fitValueFont(dc, a, b, col) {
+    // FONT_NUMBER_MILD is de bovengrens: die past aantoonbaar op de FR965,
+    // FONT_NUMBER_MEDIUM botst met de racetijd. Er is geen betrouwbare manier
+    // om die grens uit te rekenen — getFontHeight() geeft de regelhoogte en
+    // niet de zichtbare hoogte van de cijfers, en Dc heeft geen
+    // getFontDescent — dus staat hij hier vast, gemeten op het toestel.
+    hidden function _fitValueFont(dc, col) {
         var fonts = [
-            Graphics.FONT_NUMBER_MEDIUM,
             Graphics.FONT_NUMBER_MILD,
             Graphics.FONT_MEDIUM
         ];
         var maxWidth = 2 * (col - 8);
 
         for (var i = 0; i < fonts.size(); i++) {
-            var wa = dc.getTextWidthInPixels(a, fonts[i]);
-            var wb = dc.getTextWidthInPixels(b, fonts[i]);
+            var wa = dc.getTextWidthInPixels("88.8", fonts[i]);
+            var wb = dc.getTextWidthInPixels("888", fonts[i]);
             var widest = (wa > wb) ? wa : wb;
             if (widest <= maxWidth) { return fonts[i]; }
         }

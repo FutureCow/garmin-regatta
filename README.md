@@ -130,7 +130,7 @@ Over de waarden op het infoscherm:
 - **Knopen** is het gemiddelde over de laatste 5 seconden, niet de rauwe meting. Instantane GPS-snelheid springt op het water te veel heen en weer om af te lezen.
 - **Koers** is koers over grond uit `Activity.Info.track`, dus de uit GPS-beweging afgeleide richting — niet de kompaskoers. Onder 0,5 knoop staat er `---`, omdat de waarde dan pure ruis is. Er staat geen `°` achter: de `FONT_NUMBER_*`-familie is "number only" en kan dat teken niet tekenen.
 - **Klok** volgt de 12/24-uursinstelling van het horloge.
-- De cijfers worden zo groot mogelijk getekend. `_fitValueFont()` probeert de fonts van groot naar klein en pakt het eerste dat past. Het blok hangt vanaf onderen: het label staat vast boven de paginastippen, de waarde daar weer boven. Van bovenaf uitrekenen werkte niet — `dc.getFontHeight()` geeft de regelhoogte van een font terug, niet hoever de cijfers zichtbaar doorlopen, en bij een `FONT_NUMBER_*` zit daar zoveel loze ruimte onder dat het waardefont onnodig degradeerde.
+- De cijfers staan op `FONT_NUMBER_MILD`, de grootste maat die naast de racetijd past. Dat is op het toestel gemeten en niet berekend: `dc.getFontHeight()` geeft de regelhoogte van een font en niet hoever de cijfers zichtbaar doorlopen, en `Dc` heeft geen `getFontDescent`. `_fitValueFont()` meet de bréédst mogelijke inhoud (`88.8` en `888`) in plaats van de actuele waarden, zodat de maat gelijk blijft terwijl je vaart — anders koos hij een groter font zodra de koers even `---` was.
 
 ## Installatie
 
