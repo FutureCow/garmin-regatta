@@ -189,11 +189,10 @@ class RegattaView extends WatchUi.View {
     // krap uitviel en het waardefont onnodig degradeerde.
     hidden function _drawInfoPage(dc, w, h) {
         var cx = w / 2;
-        var cy = h / 2;
         var fs = Graphics.FONT_XTINY;
         var col = 88;                   // horizontale afstand tot het midden
         var gap = 6;                    // tussen waarde en label
-        var bottom = h - 55;            // onderkant van het label
+        var bottom = h - 45;            // onderkant van het label
 
         var knots  = (_telemetry != null) ? _telemetry.getSpeedKnots()    : null;
         var course = (_telemetry != null) ? _telemetry.getCourseDegrees() : null;
@@ -204,14 +203,7 @@ class RegattaView extends WatchUi.View {
         var courseStr = (course != null) ? course.toNumber().format("%03d") : "---";
 
         var lH = dc.getFontHeight(fs);
-
-        // Hoogste punt dat het blok mag innemen zonder de racetijd te raken.
-        // Empirisch: de grote cijfers lopen zichtbaar tot ongeveer cy + 50.
-        var ceiling = cy + 60;
-
-        var valueFont = _fitValueFont(
-            dc, speedStr, courseStr, col, (bottom - gap - lH) - ceiling);
-
+        var valueFont = _fitValueFont(dc, speedStr, courseStr, col);
         var vH = dc.getFontHeight(valueFont);
         var labelY = bottom - lH / 2;
         var valueY = bottom - lH - gap - vH / 2;
@@ -226,15 +218,19 @@ class RegattaView extends WatchUi.View {
         dc.drawText(cx + col, labelY, fs, "KOERS",  mid);
     }
 
-    // Pakt het grootste font dat zowel naast elkaar past als binnen de
-    // beschikbare hoogte. Zonder de hoogtecheck zou een fors font het blok
-    // over de paginastippen heen duwen.
-    hidden function _fitValueFont(dc, a, b, col, maxHeight) {
+    // Selecteert op BREEDTE alleen. getTextWidthInPixels() meet de echte
+    // glyphs en is betrouwbaar; getFontHeight() geeft de regelhoogte van het
+    // font en valt bij een FONT_NUMBER_* veel hoger uit dan de cijfers zelf.
+    // Een hoogtecheck op dat getal degradeerde het font onnodig — dat was de
+    // bug in v1.12.2 en v1.12.3. Nodig is die check ook niet: het blok hangt
+    // vanaf onderen en kan dus niet over de paginastippen zakken.
+    //
+    // FONT_NUMBER_HOT ontbreekt bewust: op de FR965 botst die met de racetijd.
+    hidden function _fitValueFont(dc, a, b, col) {
         var fonts = [
             Graphics.FONT_NUMBER_MEDIUM,
             Graphics.FONT_NUMBER_MILD,
-            Graphics.FONT_MEDIUM,
-            Graphics.FONT_SMALL
+            Graphics.FONT_MEDIUM
         ];
         var maxWidth = 2 * (col - 8);
 
@@ -242,10 +238,7 @@ class RegattaView extends WatchUi.View {
             var wa = dc.getTextWidthInPixels(a, fonts[i]);
             var wb = dc.getTextWidthInPixels(b, fonts[i]);
             var widest = (wa > wb) ? wa : wb;
-
-            if (widest <= maxWidth && dc.getFontHeight(fonts[i]) <= maxHeight) {
-                return fonts[i];
-            }
+            if (widest <= maxWidth) { return fonts[i]; }
         }
         return fonts[fonts.size() - 1];
     }
