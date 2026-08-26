@@ -109,15 +109,9 @@ class RegattaView extends WatchUi.View {
         }
         dc.drawText(cx, baselineY, font, displayStr, Graphics.TEXT_JUSTIFY_CENTER);
 
-        // Onderkant van de grote cijfers méten, niet schatten. FONT_NUMBER_
-        // THAI_HOT loopt op de FR965 flink lager door dan een schatting op
-        // basis van cy suggereert; daardoor viel het waardenblok er eerst
-        // bovenop.
-        var timerBottom = baselineY + dc.getFontHeight(font);
-
         // ─── Pagina-inhoud ───────────────────────────────────────────────
         if (page == 1) {
-            _drawInfoPage(dc, w, h, timerBottom);
+            _drawInfoPage(dc, w, h);
         } else {
             _drawTimerPage(dc, w, h, isIdle, counting, timer);
         }
@@ -187,12 +181,19 @@ class RegattaView extends WatchUi.View {
     // Posities komen uit de gemeten fonthoogte, niet uit vaste offsets.
     // Met vaste offsets liep het label door de waarde heen zodra het font
     // hoger uitviel dan aangenomen.
-    hidden function _drawInfoPage(dc, w, h, timerBottom) {
+    // Het blok hangt vanaf ONDEREN: het label staat een vaste afstand boven
+    // de paginastippen en de waarde daar weer boven. Van bovenaf uitrekenen
+    // werkte niet, want dc.getFontHeight() geeft de regelhoogte van het font
+    // terug en niet hoe ver de cijfers zichtbaar doorlopen — bij een
+    // FONT_NUMBER_* zit daar zoveel loze ruimte onder dat de band veel te
+    // krap uitviel en het waardefont onnodig degradeerde.
+    hidden function _drawInfoPage(dc, w, h) {
         var cx = w / 2;
+        var cy = h / 2;
         var fs = Graphics.FONT_XTINY;
         var col = 88;                   // horizontale afstand tot het midden
         var gap = 6;                    // tussen waarde en label
-        var clear = 12;                 // lucht onder de grote cijfers
+        var bottom = h - 55;            // onderkant van het label
 
         var knots  = (_telemetry != null) ? _telemetry.getSpeedKnots()    : null;
         var course = (_telemetry != null) ? _telemetry.getCourseDegrees() : null;
@@ -202,20 +203,18 @@ class RegattaView extends WatchUi.View {
         var speedStr  = (knots  != null) ? knots.format("%.1f") : "--";
         var courseStr = (course != null) ? course.toNumber().format("%03d") : "---";
 
-        // De band loopt van onder de grote cijfers tot boven de paginastippen
-        var bandTop = timerBottom + clear;
-        var bandBottom = h - 45;
         var lH = dc.getFontHeight(fs);
 
+        // Hoogste punt dat het blok mag innemen zonder de racetijd te raken.
+        // Empirisch: de grote cijfers lopen zichtbaar tot ongeveer cy + 50.
+        var ceiling = cy + 60;
+
         var valueFont = _fitValueFont(
-            dc, speedStr, courseStr, col, (bandBottom - bandTop) - gap - lH);
+            dc, speedStr, courseStr, col, (bottom - gap - lH) - ceiling);
 
         var vH = dc.getFontHeight(valueFont);
-        var blockH = vH + gap + lH;
-        var blockTop = bandTop + ((bandBottom - bandTop) - blockH) / 2;
-
-        var valueY = blockTop + vH / 2;
-        var labelY = blockTop + vH + gap + lH / 2;
+        var labelY = bottom - lH / 2;
+        var valueY = bottom - lH - gap - vH / 2;
         var mid = Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER;
 
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
