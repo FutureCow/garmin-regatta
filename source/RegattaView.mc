@@ -6,8 +6,14 @@
 // Beide pagina's delen dezelfde kop (fase-label + grote cijfers) en
 // dezelfde voet (hint). Daartussen tekent elke pagina zijn eigen inhoud:
 //
-//   pagina 0   presets (idle) of de ±1-knoplabels (aftellen), GPS-stip
-//   pagina 1   snelheid in knopen, koers over grond, klok
+//   pagina 0   fase-label, presets (idle) of ±1-knoplabels (aftellen),
+//              GPS-stip en de hint onderin
+//   pagina 1   klok bovenaan, daaronder snelheid in knopen en koers over
+//              grond, zo groot als er past
+//
+// Pagina 1 heeft bewust geen fase-label en geen hint: die pagina bestaat
+// alleen tijdens de race, dus "RACE" zei niets, en de ruimte is beter
+// besteed aan leesbare cijfers.
 //
 // Pagina 1 bestaat alleen tijdens de race. Tijdens het aftellen zijn
 // UP/DOWN nodig voor ±1 minuut, dus dan valt er niets te bladeren en
@@ -77,9 +83,14 @@ class RegattaView extends WatchUi.View {
         var inRace   = timer.isRunning() && !counting;
         var page     = (inRace && _app != null) ? _app.getPage() : 0;
 
-        // ─── Gedeelde kop: fase-label + grote cijfers ────────────────────
-        dc.setColor(C_DIM, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, 40, fs, timer.getLabel(), Graphics.TEXT_JUSTIFY_CENTER);
+        // ─── Kop ─────────────────────────────────────────────────────────
+        // Pagina 1 zet hier de klok neer in plaats van het fase-label.
+        if (page == 1) {
+            _drawClockLine(dc, cx, 62);
+        } else {
+            dc.setColor(C_DIM, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, 40, fs, timer.getLabel(), Graphics.TEXT_JUSTIFY_CENTER);
+        }
 
         var displayStr = timer.getDisplayString();
         var tc = Graphics.COLOR_WHITE;
@@ -105,9 +116,12 @@ class RegattaView extends WatchUi.View {
             _drawTimerPage(dc, w, h, isIdle, counting, timer);
         }
 
-        // ─── Gedeelde voet ───────────────────────────────────────────────
-        dc.setColor(C_DIM, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, h - 55, fs, isIdle ? "START" : "BACK = MENU", Graphics.TEXT_JUSTIFY_CENTER);
+        // ─── Voet ────────────────────────────────────────────────────────
+        // Geen hint op pagina 1: die ruimte is voor de cijfers.
+        if (page != 1) {
+            dc.setColor(C_DIM, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, h - 55, fs, isIdle ? "START" : "BACK = MENU", Graphics.TEXT_JUSTIFY_CENTER);
+        }
 
         // Paginastippen alleen als er echt te bladeren valt
         if (inRace) {
@@ -164,29 +178,76 @@ class RegattaView extends WatchUi.View {
 
     // ─── Pagina 1: snelheid, koers, klok ────────────────────────────────
 
+    // Posities komen uit de gemeten fonthoogte, niet uit vaste offsets.
+    // Met vaste offsets liep het label door de waarde heen zodra het font
+    // hoger uitviel dan aangenomen.
     hidden function _drawInfoPage(dc, w, h) {
         var cx = w / 2;
+        var cy = h / 2;
         var fs = Graphics.FONT_XTINY;
-        var col = 85;                   // horizontale afstand tot het midden
+        var col = 88;                   // horizontale afstand tot het midden
+        var gap = 6;                    // tussen waarde en label
 
         var knots  = (_telemetry != null) ? _telemetry.getSpeedKnots()    : null;
         var course = (_telemetry != null) ? _telemetry.getCourseDegrees() : null;
 
+        // Geen ° achter de koers: de FONT_NUMBER_*-familie is "number only"
+        // en kan het teken niet tekenen. Het label KOERS zegt genoeg.
         var speedStr  = (knots  != null) ? knots.format("%.1f") : "--";
-        var courseStr = (course != null) ? course.toNumber().format("%03d") + "°" : "---";
+        var courseStr = (course != null) ? course.toNumber().format("%03d") : "---";
+
+        var valueFont = _fitValueFont(dc, speedStr, courseStr, col);
+
+        var vH = dc.getFontHeight(valueFont);
+        var lH = dc.getFontHeight(fs);
+        var blockH = vH + gap + lH;
+
+        // Blok centreren tussen de grote cijfers en de paginastippen
+        var bandTop = cy + 20;
+        var bandBottom = h - 45;
+        var blockTop = bandTop + ((bandBottom - bandTop) - blockH) / 2;
+
+        var valueY = blockTop + vH / 2;
+        var labelY = blockTop + vH + gap + lH / 2;
+        var mid = Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER;
 
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx - col, h - 166, Graphics.FONT_MEDIUM, speedStr,  Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(cx + col, h - 166, Graphics.FONT_MEDIUM, courseStr, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx - col, valueY, valueFont, speedStr,  mid);
+        dc.drawText(cx + col, valueY, valueFont, courseStr, mid);
 
         dc.setColor(C_DIM, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx - col, h - 132, fs, "KNOPEN", Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(cx + col, h - 132, fs, "KOERS",  Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx - col, labelY, fs, "KNOPEN", mid);
+        dc.drawText(cx + col, labelY, fs, "KOERS",  mid);
+    }
 
-        // Klok met de GPS-stip ervoor
+    // Pakt het grootste font waarbij de twee waarden elkaar nog niet raken.
+    hidden function _fitValueFont(dc, a, b, col) {
+        var fonts = [
+            Graphics.FONT_NUMBER_MEDIUM,
+            Graphics.FONT_NUMBER_MILD,
+            Graphics.FONT_MEDIUM
+        ];
+        var maxWidth = 2 * (col - 8);
+
+        for (var i = 0; i < fonts.size(); i++) {
+            var wa = dc.getTextWidthInPixels(a, fonts[i]);
+            var wb = dc.getTextWidthInPixels(b, fonts[i]);
+            var widest = (wa > wb) ? wa : wb;
+            if (widest <= maxWidth) { return fonts[i]; }
+        }
+        return fonts[fonts.size() - 1];
+    }
+
+    // Klok met de GPS-stip ervoor, gecentreerd rond het midden.
+    hidden function _drawClockLine(dc, cx, y) {
+        var fs = Graphics.FONT_XTINY;
+        var clock = _clockString();
+        var textWidth = dc.getTextWidthInPixels(clock, fs);
+        var mid = Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER;
+
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx + 10, h - 100, fs, _clockString(), Graphics.TEXT_JUSTIFY_CENTER);
-        _drawGpsDot(dc, cx - 30, h - 88);
+        dc.drawText(cx + 10, y, fs, clock, mid);
+        _drawGpsDot(dc, cx + 10 - textWidth / 2 - 14, y);
     }
 
     // ─── Gedeelde onderdelen ────────────────────────────────────────────

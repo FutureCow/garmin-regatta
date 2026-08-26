@@ -96,33 +96,41 @@ verschijnen alleen tijdens de race, want alleen dan valt er te bladeren.
 
 ```
    ┌─────────────────────┐      ┌─────────────────────┐
-   │        RACE         │      │        RACE         │
+   │        RACE         │      │      ● 18:42        │
    │                     │      │                     │
    │       12:34         │  ⇄   │       12:34         │
    │                     │      │                     │
-   │                     │      │  6.4 kn      247°   │
-   │                     │      │  KNOPEN      KOERS  │
-   │         ●           │      │                     │
-   │     BACK = MENU     │      │     ● 18:42         │
-   │        ● ○          │      │     BACK = MENU     │
-   └─────────────────────┘      │        ○ ●          │
-        racetijd                └─────────────────────┘
-                                    racetijd + info
+   │                     │      │                     │
+   │                     │      │   6.4       247     │
+   │         ●           │      │  KNOPEN    KOERS    │
+   │     BACK = MENU     │      │                     │
+   │        ● ○          │      │        ○ ●          │
+   └─────────────────────┘      └─────────────────────┘
+        racetijd                    racetijd + info
 ```
 
-Gemeenschappelijk op beide schermen:
+Op beide schermen:
 
-- Bovenaan het label **AFTELLEN** of **RACE**
 - Grote cijfers: **wit** op het startscherm en tijdens het aftellen, **rood** in de laatste 10 seconden voor de start, **cyaan** tijdens de race
 - Stip: **grijs** = timer loopt, opname begint pas op 5:00 · **rood** = opname loopt maar nog geen bruikbare fix · **groen** = punten binnen
-- Onderin de hint `START` op het startscherm en `BACK = MENU` tijdens het varen
-- Presets 5m / 10m / 15m alleen zichtbaar als de timer stilstaat
+- Twee stipjes onderin geven aan op welk scherm je zit
+
+Alleen op het timerscherm:
+
+- Bovenaan het label **AFTELLEN** of **RACE**
+- Onderin de hint `START` of `BACK = MENU`
+- Presets 5m / 10m / 15m als de timer stilstaat, ±1-knoplabels tijdens het aftellen
+
+Het infoscherm laat label en hint bewust weg. Die pagina bestaat alleen
+tijdens de race, dus "RACE" zei niets, en de ruimte gaat naar leesbare
+cijfers. De klok staat er bovenaan met de GPS-stip ervoor.
 
 Over de waarden op het infoscherm:
 
 - **Knopen** is het gemiddelde over de laatste 5 seconden, niet de rauwe meting. Instantane GPS-snelheid springt op het water te veel heen en weer om af te lezen.
-- **Koers** is koers over grond uit `Activity.Info.track`, dus de uit GPS-beweging afgeleide richting — niet de kompaskoers. Onder 0,5 knoop staat er `---`, omdat de waarde dan pure ruis is.
+- **Koers** is koers over grond uit `Activity.Info.track`, dus de uit GPS-beweging afgeleide richting — niet de kompaskoers. Onder 0,5 knoop staat er `---`, omdat de waarde dan pure ruis is. Er staat geen `°` achter: de `FONT_NUMBER_*`-familie is "number only" en kan dat teken niet tekenen.
 - **Klok** volgt de 12/24-uursinstelling van het horloge.
+- De cijfers worden zo groot mogelijk getekend. `_fitValueFont()` probeert de fonts van groot naar klein en pakt het eerste dat nog naast elkaar past; de posities komen uit `dc.getFontHeight()`, zodat een label nooit door een waarde heen kan lopen.
 
 ## Installatie
 
